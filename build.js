@@ -60,8 +60,15 @@ function generateSlug(title) {
 }
 
 // Function to generate HTML template
-function generateHTMLTemplate(title, content, isPost = false) {
+function generateHTMLTemplate(title, content, isPost = false, frontmatter = {}) {
     const backLink = isPost ? '<a href="../index.html" class="back-link">← Back to Blog</a>' : '';
+    
+    // Generate SEO meta tags
+    const description = frontmatter.summary || 'Technical blog post by Snehal Reddy on systems programming, C/C++, Rust, and performance optimization.';
+    const keywords = frontmatter.keywords || 'systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management';
+    const author = 'Snehal Reddy';
+    const url = isPost ? `https://p-not-doom.com/pages/${generateSlug(title)}.html` : 'https://p-not-doom.com';
+    const image = frontmatter.image || 'https://p-not-doom.com/images/snake-battle-royale.png';
     
     return `<!DOCTYPE html>
 <html lang="en">
@@ -69,6 +76,38 @@ function generateHTMLTemplate(title, content, isPost = false) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="${description}">
+    <meta name="keywords" content="${keywords}">
+    <meta name="author" content="${author}">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:type" content="${isPost ? 'article' : 'website'}">
+    <meta property="og:url" content="${url}">
+    <meta property="og:image" content="${image}">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${title}">
+    <meta name="twitter:description" content="${description}">
+    <meta name="twitter:image" content="${image}">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="${url}">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -366,7 +405,7 @@ function generatePostPage(post, slug) {
         </div>
     `;
     
-    return generateHTMLTemplate(frontmatter.title || 'Blog Post', content, true);
+    return generateHTMLTemplate(frontmatter.title || 'Blog Post', content, true, frontmatter);
 }
 
 // Function to copy static assets
@@ -395,6 +434,38 @@ function copyStaticAssets() {
             console.log(`✅ Copied back.png to root directory`);
         }
     }
+}
+
+// Function to generate sitemap.xml
+function generateSitemap(posts) {
+    const baseUrl = 'https://p-not-doom.com';
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${baseUrl}/</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>`;
+    
+    // Add blog post URLs
+    posts.forEach(post => {
+        const postUrl = `${baseUrl}/pages/${post.slug}.html`;
+        sitemap += `
+    <url>
+        <loc>${postUrl}</loc>
+        <lastmod>${currentDate}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+    });
+    
+    sitemap += `
+</urlset>`;
+    
+    return sitemap;
 }
 
 // Function to build the complete HTML
@@ -449,12 +520,17 @@ function buildHTML() {
         ${posts.map(post => generatePostSummaryHTML(post, post.slug)).join('\n')}
     `;
     
-    const indexHTML = generateHTMLTemplate('p-not-doom', indexContent);
+    const indexHTML = generateHTMLTemplate('Snehal Reddy - Systems Programming & Performance Optimization', indexContent);
     fs.writeFileSync('index.html', indexHTML);
+    
+    // Generate sitemap.xml
+    const sitemap = generateSitemap(posts);
+    fs.writeFileSync('sitemap.xml', sitemap);
     
     console.log(`✅ Built ${posts.length} blog posts`);
     console.log(`✅ Generated index.html with ${posts.length} post summaries`);
     console.log(`✅ Individual post pages created in pages/ directory`);
+    console.log(`✅ Generated sitemap.xml for SEO`);
 }
 
 // Run the build
