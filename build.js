@@ -449,7 +449,7 @@ function buildHTML() {
         ${posts.map(post => generatePostSummaryHTML(post, post.slug)).join('\n')}
     `;
     
-    const indexHTML = generateHTMLTemplate('Portfolio & Blog', indexContent);
+    const indexHTML = generateHTMLTemplate('p-not-doom', indexContent);
     fs.writeFileSync('index.html', indexHTML);
     
     console.log(`✅ Built ${posts.length} blog posts`);
