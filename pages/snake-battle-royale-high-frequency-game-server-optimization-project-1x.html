@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Battle Royale: A Deep Dive into Low-Level Optimization</title>
+    <title>Snake Battle Royale: High-Frequency Game Server optimization project 1/x</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -18,7 +18,11 @@
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
             line-height: 1.6;
             color: #f5f5f7;
-            background-color: #000000;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
             margin: 0;
             padding: 2rem;
         }
@@ -149,6 +153,15 @@
             color: #f5f5f7;
         }
 
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
         .post-content pre {
             background-color: #2c2c2e;
             padding: 1rem;
@@ -256,11 +269,12 @@
     <div class="container">
         <a href="../index.html" class="back-link">← Back to Blog</a>
         
-        <h1>Snake Battle Royale: A Deep Dive into Low-Level Optimization</h1>
-        <div class="post-meta">December 20, 2024 • 8 min read</div>
+        <h1>Snake Battle Royale: High-Frequency Game Server optimization project 1/x</h1>
+        <div class="post-meta">August 31, 2025 • 8 min read</div>
         <div class="post-content">
             <h1 id="snake-battle-royale-a-deep-dive-into-low-level-optimization">Snake Battle Royale: A Deep Dive into Low-Level Optimization</h1>
 <p><em>When 1000 snakes fight for survival, every microsecond counts.</em></p>
+<p><img src="images/snake-battle-royale.png" alt="Blog image"></p>
 <h2 id="the-project">The Project</h2>
 <p>I&#39;ve been working on a high-frequency game server optimization project using a massive multiplayer snake battle royale as the test scenario. The goal? Learn and experiment with low-level optimization techniques in Rust by pushing tick rates to extreme limits.</p>
 <p><strong>Target Performance</strong>: 20,000+ ticks per second (0.05ms per tick) with 1000+ concurrent snakes.</p>
@@ -274,13 +288,13 @@
 </ul>
 <h2 id="the-optimization-journey">The Optimization Journey</h2>
 <p>I know this level of optimization might seem excessive for a snake game. In the real world, bottlenecks are usually in rendering, networking, or other high-level concerns. But here I have the privilege to ignore the big picture and focus purely on shaving every possible microsecond from the game tick loop. This is my playground for exploring performance optimization techniques that I can&#39;t justify in my day job.</p>
-<h3 id="the-initial-problem-grid-recreation-bottleneck">The Initial Problem: Grid Recreation Bottleneck</h3>
-<p>My first optimization was painfully obvious: <strong>stop recreating the grid every tick</strong>.</p>
+<h3 id="low-hanging-fruit-grid-recreation-bottleneck">Low Hanging Fruit: Grid Recreation Bottleneck</h3>
+<p>My first optimization was just obvious: <strong>stop recreating the grid every tick</strong>.</p>
 <p><strong>Before</strong>: Recreating a 1000×1000 grid every tick
 <strong>After</strong>: Incrementally updating only changed cells</p>
 <p>The results were dramatic:</p>
 <ul>
-<li><strong>1000 snakes with heavy updates</strong>: 51.71 → 8.22 microseconds</li>
+<li><strong>1000 snakes with heavy updates</strong>: 51.71 → 8.22 μs</li>
 <li><strong>~6x performance improvement</strong></li>
 </ul>
 <p>But this introduced a new problem: <strong>manual grid management is a bug magnet</strong>.</p>
@@ -294,17 +308,18 @@
 <li>Apple spawned → add to grid</li>
 </ul>
 <p>The flow was correct but fragile. Small changes could easily break grid consistency, and the code was becoming a maintenance nightmare. I needed a better model.</p>
+<p><img src="images/state_crit.png" alt="State Criterion bench"></p>
 <h3 id="exploring-architectural-solutions">Exploring Architectural Solutions</h3>
 <p>I brainstormed several approaches to solve this grid consistency problem:</p>
 <h4 id="1-event-driven-architecture-❌">1. Event-Driven Architecture ❌</h4>
-<p><strong>Concept</strong>: Use events to decouple state changes from grid updates
-<strong>Problem</strong>: Snake movement is inherently order-dependent. One snake must move first, then others operate on the updated state. Events don&#39;t handle this sequential dependency well.</p>
+<p><strong>Concept</strong>: Use events to decouple state changes from grid updates</p>
+<p><strong>Problem</strong>: Snake movement is inherently order-dependent. One snake must move first, then others operate on the updated state. Events don&#39;t handle this sequential dependency well.</p>
 <h4 id="2-type-level-invariants-with-phantom-data-❌">2. Type-Level Invariants with Phantom Data ❌</h4>
-<p><strong>Concept</strong>: Use Rust&#39;s type system to enforce grid consistency at compile time
-<strong>Complexity</strong>: Would require significant refactoring and complex type machinery</p>
+<p><strong>Concept</strong>: Use Rust&#39;s type system to enforce grid consistency at compile time</p>
+<p><strong>Complexity</strong>: Would require significant refactoring and complex type machinery</p>
 <h4 id="3-smart-wrapper-types-with-invariants-✅">3. Smart Wrapper Types with Invariants ✅</h4>
-<p><strong>Concept</strong>: Wrap data structures in types that automatically handle grid updates
-<strong>Advantage</strong>: Encapsulates grid logic, maintains performance, keeps code clean</p>
+<p><strong>Concept</strong>: Wrap data structures in types that automatically handle grid updates</p>
+<p><strong>Advantage</strong>: Encapsulates grid logic, maintains performance, keeps code clean</p>
 <h3 id="implementing-smart-wrapper-types">Implementing Smart Wrapper Types</h3>
 <p>I chose the wrapper approach and created <code>GridAwareSnake</code> and <code>GridAwareApple</code>:</p>
 <pre><code class="language-rust">pub struct GridAwareSnake {
@@ -347,8 +362,9 @@ impl GridAwareSnake {
 }
 </code></pre>
 <h3 id="the-unexpected-performance-win">The Unexpected Performance Win</h3>
-<p><strong>Results</strong>: 8.22 → 4.56 microseconds
+<p><strong>Results</strong>: 8.22 → 4.56 μs
 <strong>~1.7x additional performance improvement</strong></p>
+<p><img src="images/state-wrapper-crit.png" alt="State Criterion bench"></p>
 <p>This was surprising because I expected the wrapper approach to be slower due to:</p>
 <ul>
 <li>Additional function call overhead</li>
@@ -386,17 +402,15 @@ if self.grid.get_cell(head) == Cell::Snake {
 <h2 id="performance-results">Performance Results</h2>
 <p>The journey from the initial implementation to the optimized version:</p>
 <ul>
-<li><strong>Initial</strong>: 51.71 microseconds per tick</li>
-<li><strong>After grid optimization</strong>: 8.22 microseconds per tick (~6x improvement)</li>
-<li><strong>After smart wrappers</strong>: 4.56 microseconds per tick (~1.7x additional improvement)</li>
+<li><strong>Initial</strong>: 51.71 μs per tick</li>
+<li><strong>After grid optimization</strong>: 8.22 μs per tick (~6x improvement)</li>
+<li><strong>After smart wrappers</strong>: 4.56 μs per tick (~1.7x additional improvement)</li>
 <li><strong>After removing redundant checks</strong>: Even cleaner code with same performance</li>
 </ul>
 <p><strong>Total improvement</strong>: ~11x faster with cleaner, more maintainable code.</p>
 <h2 id="whats-next">What&#39;s Next</h2>
-<p>The project is still a work-in-progress. Still have not gotten to any saucy details yet.</p>
-<p>But for now, I&#39;m satisfied with the journey from 51.71 microseconds to 4.56 microseconds. It taught me more about performance optimization than any textbook ever could.</p>
-<hr>
-<p><em>This is the kind of rabbit hole I love diving into during those late-night coding sessions. When you&#39;re not constrained by business requirements or time pressure, you can explore the full depth of what&#39;s possible with modern systems programming. The intersection of performance, systems programming, and pure curiosity is where the magic happens.</em></p>
+<p>We&#39;re just getting warmed up. We haven&#39;t even touched any of the really juicy low-level stuff yet.</p>
+<p>But for now, I&#39;m satisfied with the journey from 51.71 μs to 4.56 μs.</p>
 
         </div>
     
