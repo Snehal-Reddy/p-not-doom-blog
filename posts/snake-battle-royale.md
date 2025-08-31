@@ -1,6 +1,6 @@
 ---
-title: Snake Battle Royale: A Deep Dive into Low-Level Optimization Part 1/x
-date: December 20, 2024
+title: Snake Battle Royale: High-Frequency Game Server optimization project 1/x
+date: August 31, 2025
 readTime: 8 min read
 summary: When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits
 ---
@@ -32,7 +32,7 @@ I know this level of optimization might seem excessive for a snake game. In the 
 
 ### Low Hanging Fruit: Grid Recreation Bottleneck
 
-My first optimization was painfully obvious: **stop recreating the grid every tick**.
+My first optimization was just obvious: **stop recreating the grid every tick**.
 
 **Before**: Recreating a 1000×1000 grid every tick
 **After**: Incrementally updating only changed cells
@@ -190,7 +190,6 @@ The journey from the initial implementation to the optimized version:
 
 ## What's Next
 
-We're just getting warmed up. We haven't even touched memory layout, custom allocators, SIMD, or any of the really juicy low-level stuff yet.
+We're just getting warmed up. We haven't even touched any of the really juicy low-level stuff yet.
 
-But for now, I'm satisfied with the journey from 51.71 μs to 4.56 μs. It taught me more about performance optimization than any textbook ever could.
-
+But for now, I'm satisfied with the journey from 51.71 μs to 4.56 μs.

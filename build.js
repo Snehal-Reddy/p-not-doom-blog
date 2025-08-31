@@ -439,7 +439,7 @@ function buildHTML() {
         <div class="bio">
             Welcome to my corner of the internet 
             <br><br>
-            By day, I'm Snehal, a software engineer at Google who gets paid to write low level systems code that actually works (doesn't generate CVEs hopefully). 
+            By day, I'm a software engineer who gets paid to write low level systems code that <b>actually works</b> (doesn't generate CVEs hopefully). 
             <br><br>
             But by early mornings and late-nights, I'm simply a hobbyist trying to give my CPU and GPU cores a personality crisis with utterly meaningless projects. This is where I share those early morning and late-night experiments—the projects where I do everything and nothing at the same time.
         </div>
