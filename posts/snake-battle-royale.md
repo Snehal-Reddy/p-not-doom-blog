@@ -194,6 +194,3 @@ We're just getting warmed up. We haven't even touched memory layout, custom allo
 
 But for now, I'm satisfied with the journey from 51.71 μs to 4.56 μs. It taught me more about performance optimization than any textbook ever could.
 
----
-
-*This is the kind of rabbit hole I love diving into during those late-night coding sessions. When you're not constrained by business requirements or time pressure, you can explore the full depth of what's possible with modern systems programming. The intersection of performance, systems programming, and pure curiosity is where the magic happens.*
