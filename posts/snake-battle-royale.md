@@ -5,7 +5,7 @@ readTime: 8 min read
 summary: When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits
 ---
 
-# Snake Battle Royale: A Deep Dive into Low-Level Optimization
+# Snake Battle Royale: High-Frequency Game Server optimization project
 
 *When 1000 snakes fight for survival, every microsecond counts.*
 
