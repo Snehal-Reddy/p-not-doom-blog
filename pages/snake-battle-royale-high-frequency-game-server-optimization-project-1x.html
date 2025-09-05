@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Battle Royale: High-Frequency Game Server optimization project 1/x</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 1/x">
+    <meta property="og:description" content="When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-1x.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 1/x">
+    <meta name="twitter:description" content="When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-1x.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>Snake Battle Royale: High-Frequency Game Server optimization project 1/x</h1>
+        <div class="post-meta">August 31, 2025 • 8 min read</div>
+        <div class="post-content">
+            <h1 id="snake-battle-royale-high-frequency-game-server-optimization-project">Snake Battle Royale: High-Frequency Game Server optimization project</h1>
+<p><em>When 1000 snakes fight for survival, every microsecond counts.</em></p>
+<p><img src="images/snake-battle-royale.png" alt="Blog image"></p>
+<h2 id="the-project">The Project</h2>
+<p>I&#39;ve been working on a high-frequency game server optimization project using a massive multiplayer snake battle royale as the test scenario. The goal? Learn and experiment with low-level optimization techniques in Rust by pushing tick rates to extreme limits.</p>
+<p><strong>Target Performance</strong>: 20,000+ ticks per second (0.05ms per tick) with 1000+ concurrent snakes.</p>
+<h3 id="the-game-concept">The Game Concept</h3>
+<p>Imagine 1000+ snakes moving simultaneously on a shared 2D grid. Each snake moves 1 unit in any direction per tick. They collide, consume food, and fight for territory—all while maintaining real-time performance constraints with sub-millisecond tick processing.</p>
+<p>The architecture is intentionally simple but performance-critical:</p>
+<ul>
+<li>Single process with two dedicated threads pinned to separate CPU cores</li>
+<li>Custom minimal lock-free queue for inter-thread communication</li>
+<li>1000×1000 cell grid with efficient spatial queries</li>
+</ul>
+<h2 id="the-optimization-journey">The Optimization Journey</h2>
+<p>I know this level of optimization might seem excessive for a snake game. In the real world, bottlenecks are usually in rendering, networking, or other high-level concerns. But here I have the privilege to ignore the big picture and focus purely on shaving every possible microsecond from the game tick loop. This is my playground for exploring performance optimization techniques that I can&#39;t justify in my day job.</p>
+<h3 id="low-hanging-fruit-grid-recreation-bottleneck">Low Hanging Fruit: Grid Recreation Bottleneck</h3>
+<p>My first optimization was just obvious: <strong>stop recreating the grid every tick</strong>.</p>
+<p><strong>Before</strong>: Recreating a 1000×1000 grid every tick
+<strong>After</strong>: Incrementally updating only changed cells</p>
+<p>The results were dramatic:</p>
+<ul>
+<li><strong>1000 snakes with heavy updates</strong>: 51.71 → 8.22 μs</li>
+<li><strong>~6x performance improvement</strong></li>
+</ul>
+<p>But this introduced a new problem: <strong>manual grid management is a bug magnet</strong>.</p>
+<h3 id="the-manual-grid-update-nightmare">The Manual Grid Update Nightmare</h3>
+<p>With incremental updates, I had to ensure every state change was followed by a corresponding grid update:</p>
+<ul>
+<li>Snake moves → update old position (empty) and new position (snake)</li>
+<li>Snake grows → update new tail segment</li>
+<li>Snake dies → clear all segments</li>
+<li>Apple consumed → remove from grid</li>
+<li>Apple spawned → add to grid</li>
+</ul>
+<p>The flow was correct but fragile. Small changes could easily break grid consistency, and the code was becoming a maintenance nightmare. I needed a better model.</p>
+<p><img src="images/state_crit.png" alt="State Criterion bench"></p>
+<h3 id="exploring-architectural-solutions">Exploring Architectural Solutions</h3>
+<p>I brainstormed several approaches to solve this grid consistency problem:</p>
+<h4 id="1-event-driven-architecture-❌">1. Event-Driven Architecture ❌</h4>
+<p><strong>Concept</strong>: Use events to decouple state changes from grid updates</p>
+<p><strong>Problem</strong>: Snake movement is inherently order-dependent. One snake must move first, then others operate on the updated state. Events don&#39;t handle this sequential dependency well.</p>
+<h4 id="2-type-level-invariants-with-phantom-data-❌">2. Type-Level Invariants with Phantom Data ❌</h4>
+<p><strong>Concept</strong>: Use Rust&#39;s type system to enforce grid consistency at compile time</p>
+<p><strong>Complexity</strong>: Would require significant refactoring and complex type machinery</p>
+<h4 id="3-smart-wrapper-types-with-invariants-✅">3. Smart Wrapper Types with Invariants ✅</h4>
+<p><strong>Concept</strong>: Wrap data structures in types that automatically handle grid updates</p>
+<p><strong>Advantage</strong>: Encapsulates grid logic, maintains performance, keeps code clean</p>
+<h3 id="implementing-smart-wrapper-types">Implementing Smart Wrapper Types</h3>
+<p>I chose the wrapper approach and created <code>GridAwareSnake</code> and <code>GridAwareApple</code>:</p>
+<pre><code class="language-rust">pub struct GridAwareSnake {
+    snake: Snake,
+}
+
+impl GridAwareSnake {
+    pub fn move_forward(&amp;mut self, grid: &amp;mut Grid) -&gt; bool {
+        let new_head = self.snake.calculate_new_head();
+        
+        // Check collisions BEFORE moving
+        if grid.get_cell(&amp;new_head) == Cell::Snake {
+            self.snake.is_alive = false;
+            return false;
+        }
+        
+        // Clear old tail, move snake, update new head
+        if let Some(tail) = self.snake.body.back() {
+            grid.set_cell(*tail, Cell::Empty);
+        }
+        self.snake.move_forward();
+        if let Some(head) = self.snake.body.front() {
+            grid.set_cell(*head, Cell::Snake);
+        }
+        true
+    }
+}
+</code></pre>
+<h3 id="memory-safety-the-raw-pointer-pitfall">Memory Safety: The Raw Pointer Pitfall</h3>
+<p>The initial implementation used raw pointers (<code>*mut Grid</code>) in wrapper types:</p>
+<pre><code class="language-rust">pub struct GridAwareSnake {
+    snake: Snake,
+    grid: *mut Grid, // ❌ Dangling pointer after grid moves
+}
+</code></pre>
+<p><strong>Problem</strong>: When <code>GameState::random()</code> created the grid locally and moved it, the raw pointers became dangling, causing segmentation faults.</p>
+<p><strong>Solution</strong>: Use explicit grid references:</p>
+<pre><code class="language-rust">pub fn move_forward(&amp;mut self, grid: &amp;mut Grid) -&gt; bool {
+    // ✅ Safe, explicit dependency
+}
+</code></pre>
+<h3 id="the-unexpected-performance-win">The Unexpected Performance Win</h3>
+<p><strong>Results</strong>: 8.22 → 4.56 μs
+<strong>~1.7x additional performance improvement</strong></p>
+<p><img src="images/state-wrapper-crit.png" alt="State Criterion bench"></p>
+<p>This was surprising because I expected the wrapper approach to be slower due to:</p>
+<ul>
+<li>Additional function call overhead</li>
+<li>More complex control flow</li>
+<li>Extra self-collision detection logic</li>
+</ul>
+<h3 id="why-smart-wrappers-are-faster">Why Smart Wrappers Are Faster</h3>
+<p>The performance improvement likely comes from:</p>
+<h4 id="1-better-control-flow">1. <strong>Better Control Flow</strong></h4>
+<p><strong>Old approach</strong>: Check collisions after movement</p>
+<pre><code class="language-rust">snake.move_forward();
+if self.grid.get_cell(head) == Cell::Snake {
+    snake.is_alive = false;
+    continue; // Dead snake still processes rest of loop
+}
+</code></pre>
+<p><strong>Smart wrapper</strong>: Check collisions before movement</p>
+<pre><code class="language-rust">if grid.get_cell(&amp;new_head) == Cell::Snake {
+    self.snake.is_alive = false;
+    return false; // Early exit, no further processing
+}
+</code></pre>
+<h4 id="2-improved-apple-consumption-logic">2. <strong>Improved Apple Consumption Logic</strong></h4>
+<p><strong>Old approach</strong>: Check apple consumption after movement
+<strong>Smart wrapper</strong>: Check apple consumption before movement with <code>will_eat_apple</code> flag</p>
+<h4 id="3-compiler-optimizations">3. <strong>Compiler Optimizations</strong></h4>
+<p>The wrapper structure might allow the compiler to make better optimizations:</p>
+<ul>
+<li>More predictable branch patterns</li>
+<li>Better inlining opportunities</li>
+<li>Improved cache locality</li>
+</ul>
+<h4 id="4-reduced-work-for-dead-snakes">4. <strong>Reduced Work for Dead Snakes</strong></h4>
+<p>Dead snakes return early and don&#39;t continue processing, eliminating unnecessary operations.</p>
+<h2 id="performance-results">Performance Results</h2>
+<p>The journey from the initial implementation to the optimized version:</p>
+<ul>
+<li><strong>Initial</strong>: 51.71 μs per tick</li>
+<li><strong>After grid optimization</strong>: 8.22 μs per tick (~6x improvement)</li>
+<li><strong>After smart wrappers</strong>: 4.56 μs per tick (~1.7x additional improvement)</li>
+<li><strong>After removing redundant checks</strong>: Even cleaner code with same performance</li>
+</ul>
+<p><strong>Total improvement</strong>: ~11x faster with cleaner, more maintainable code.</p>
+<h2 id="whats-next">What&#39;s Next</h2>
+<p>We&#39;re just getting warmed up. We haven&#39;t even touched any of the really juicy low-level stuff yet.</p>
+<p>But for now, I&#39;m satisfied with the journey from 51.71 μs to 4.56 μs.</p>
+
+        </div>
+    
+    </div>
+</body>
+</html>
