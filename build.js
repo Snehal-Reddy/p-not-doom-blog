@@ -561,17 +561,18 @@ function buildHTML() {
         ${posts.map(post => generatePostSummaryHTML(post, post.slug)).join('\n')}
     `;
     
-    const indexHTML = generateHTMLTemplate('Snehal Reddy - Systems Programming & Performance Optimization', indexContent);
-    fs.writeFileSync('index.html', indexHTML);
+    // Don't overwrite the custom index.html with i3-style interface
+    // const indexHTML = generateHTMLTemplate('Snehal Reddy - Systems Programming & Performance Optimization', indexContent);
+    // fs.writeFileSync('index.html', indexHTML);
     
     // Generate sitemap.xml
     const sitemap = generateSitemap(posts);
     fs.writeFileSync('sitemap.xml', sitemap);
     
     console.log(`✅ Built ${posts.length} blog posts`);
-    console.log(`✅ Generated index.html with ${posts.length} post summaries`);
     console.log(`✅ Individual post pages created in pages/ directory`);
     console.log(`✅ Generated sitemap.xml for SEO`);
+    console.log(`ℹ️  Skipped index.html generation (using custom i3-style interface)`);
 }
 
 // Run the build
