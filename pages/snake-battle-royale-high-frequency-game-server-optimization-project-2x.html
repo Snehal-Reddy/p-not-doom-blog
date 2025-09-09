@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Battle Royale: High-Frequency Game Server optimization project 2/x</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="When poor benchmarking, and cache misses bite back.">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 2/x">
+    <meta property="og:description" content="When poor benchmarking, and cache misses bite back.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-2x.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 2/x">
+    <meta name="twitter:description" content="When poor benchmarking, and cache misses bite back.">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-2x.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>Snake Battle Royale: High-Frequency Game Server optimization project 2/x</h1>
+        <div class="post-meta">Sept 08, 2025 • 8 min read</div>
+        <div class="post-content">
+            <h1 id="snake-battle-royale-high-frequency-game-server-optimization-project-part-2">Snake Battle Royale: High-Frequency Game Server optimization project (Part 2)</h1>
+<p><em>When poor benchmarking, and cache misses bite back</em></p>
+<p><img src="images/cache_miss.png" alt="Blog image"></p>
+<h2 id="but-first">But, first</h2>
+<p>After the initial 11x performance improvement from 51.71 μs to 4.56 μs, I was ready to dive deeper into the optimization rabbit hole. But first, I needed to make the problem harder to measure smaller improvements.</p>
+<p><strong>The Setup</strong>: I increased the grid size from 1000×1000 to 4000×4000. Still fits in L3 cache (barely), but makes the problem slightly more realistic and easier to measure micro-optimizations against.</p>
+<h2 id="the-benchmarking-problem">The Benchmarking Problem</h2>
+<p>My original benchmark was not the best, and had not given it much thought. Silly me, thinking benchmarking is not going to be my problem. I was using random game states and inputs, which meant every run was different. When I saw a 5% improvement, I couldn&#39;t tell if it was real optimization or just random variance. I needed deterministic, reproducible results.</p>
+<h3 id="building-a-deterministic-benchmark">Building a Deterministic Benchmark</h3>
+<p>I designed a benchmark that guaranteed identical game state evolution every time:</p>
+<ul>
+<li><strong>Fixed starting positions</strong>: Snakes placed in strategic locations for predictable collisions</li>
+<li><strong>Deterministic inputs</strong>: Movement patterns that led to known outcomes (25% die, 25% grow, 50% unchanged)  </li>
+<li><strong>Predictable game state</strong>: Every tick produced identical results</li>
+</ul>
+<p>This eliminated the random noise and let me focus on measuring actual performance improvements.</p>
+<h2 id="the-cpu-frequency-chaos">The CPU Frequency Chaos</h2>
+<p>But then my benchmark results were still all over the place. One run would show 40 μs, the next 57 μs, then back to 41 μs. This wasn&#39;t the deterministic performance I was looking for.</p>
+<p>And then, in the quiet of my room, I heard my CPU fan go <em>brrr</em> because of another background process. That&#39;s when I realized the issue wasn&#39;t my benchmark—it was my environment.</p>
+<h3 id="root-causes-two-environmental-variables">Root Causes: Two Environmental Variables</h3>
+<p>Two environmental variables were wreaking havoc on my measurements:</p>
+<ol>
+<li><p><strong>CPU Frequency Chaos</strong>: My CPU was switching between:</p>
+<ul>
+<li><strong>Powersave mode</strong>: 800 MHz, energy-efficient but slow</li>
+<li><strong>Performance mode</strong>: Variable frequency scaling based on load</li>
+<li><strong>Thermal throttling</strong>: Reducing frequency when things got hot</li>
+</ul>
+</li>
+<li><p><strong>Cache Variance</strong>: CPU caching was not consistent across runs.</p>
+</li>
+</ol>
+<p>Even with core pinning, the frequency was jumping around like a snake on caffeine, and caches were warming up between runs.</p>
+<h3 id="the-solution-environment-lockdown">The Solution: Environment Lockdown</h3>
+<p>I needed to eliminate both variables entirely. The approach was simple but effective:</p>
+<ol>
+<li><strong>Lock CPU governor</strong> to &quot;performance&quot; mode</li>
+<li><strong>Set min/max frequency</strong> to the same value (4.0 GHz)</li>
+<li><strong>Pin benchmark</strong> to a specific CPU core (core 0)</li>
+<li><strong>Use warm-up runs</strong> for consistent cache state</li>
+<li><strong>Restore original settings</strong> after benchmark</li>
+</ol>
+<p>I hacked together a CPU control script:</p>
+<pre><code class="language-bash">#!/bin/bash
+# Store original settings
+ORIGINAL_GOVERNOR=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor)
+ORIGINAL_MIN_FREQ=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq)
+ORIGINAL_MAX_FREQ=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq)
+
+# Lock to performance mode at 4.0 GHz
+echo performance | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+echo 4000000 | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+echo 4000000 | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+
+# Run benchmark with core pinning
+sudo -u $ACTUAL_USER taskset -c 0 /home/boopop/.cargo/bin/cargo bench --bench game_bench hot_path/100_snakes
+
+# Restore original settings
+echo $ORIGINAL_GOVERNOR | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+echo $ORIGINAL_MIN_FREQ | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+echo $ORIGINAL_MAX_FREQ | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+</code></pre>
+<p><strong>Final Approach</strong>: Lock CPU to 4.0 GHz, pin to core 0, run benchmark twice (measure the second). This gives me consistent performance that also matches real-world conditions—or at least that&#39;s what I tell myself. So I moved on!</p>
+<h2 id="the-inlining-disappointment">The Inlining Disappointment</h2>
+<p>Now that we added a bunch of wrappers in the previous post, function entry and exits could be significant. Inlining them should help, right?</p>
+<p>Turns out they weren&#39;t really helping that much.</p>
+<p><strong>Hypothesis</strong>: Something else, maybe cache misses, are taking up a larger chunk of time as we increase the number of snakes.</p>
+<p>I ran some perf analysis, and my hypothesis was correct. But I&#39;ll get to the actual cache analysis in a minute. I&#39;d been meaning to replace the HashMap with a simple static vector anyway to see the performance difference. That should help with cache performance too—HashMaps are notoriously harder to optimize for cache locality.</p>
+<h2 id="the-hashmap-to-vector-migration">The HashMap to Vector Migration</h2>
+<p>A vector is more straightforward for most cases except deletion of snakes. I just decided to keep the dead snakes in the vector all the time. There&#39;s a tradeoff because we&#39;ll be iterating over dead snakes, but the cache benefits should outweigh this cost, given new snakes are not spawned.</p>
+<p>The cache performance across the tick() loop was now good, but still had room for improvement:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Snakes</th>
+<th>Cache Hit %</th>
+<th>Cache Hits</th>
+<th>Cache Misses</th>
+<th>Branch Pred %</th>
+<th>IPC</th>
+<th>Iterations</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>100</td>
+<td>89.78%</td>
+<td>145,534</td>
+<td>15,584</td>
+<td>99.69%</td>
+<td>1.63</td>
+<td>1,311</td>
+</tr>
+<tr>
+<td>300</td>
+<td>90.10%</td>
+<td>127,060</td>
+<td>13,075</td>
+<td>99.61%</td>
+<td>2.01</td>
+<td>1,311</td>
+</tr>
+<tr>
+<td>500</td>
+<td>91.97%</td>
+<td>134,445</td>
+<td>10,988</td>
+<td>99.58%</td>
+<td>2.40</td>
+<td>1,311</td>
+</tr>
+<tr>
+<td>700</td>
+<td>90.42%</td>
+<td>1,296,257</td>
+<td>81,137</td>
+<td>99.51%</td>
+<td>2.65</td>
+<td>11,740</td>
+</tr>
+<tr>
+<td>900</td>
+<td><strong>77.93%</strong></td>
+<td>181,470</td>
+<td>48,999</td>
+<td>99.77%</td>
+<td>2.52</td>
+<td>1,718</td>
+</tr>
+<tr>
+<td>1000</td>
+<td><strong>78.39%</strong></td>
+<td>194,042</td>
+<td>50,558</td>
+<td>99.85%</td>
+<td>2.63</td>
+<td>1,820</td>
+</tr>
+</tbody></table></div>
+<p>Notice how cache hit percentage drops significantly at 900+ snakes.</p>
+<h2 id="cache-padding-false-sharing">Cache Padding: False sharing?</h2>
+<p>I made the snake cache-padded as well:</p>
+<pre><code class="language-rust">pub struct GridAwareSnake {
+    snake: CachePadded&lt;Snake&gt;,
+}
+</code></pre>
+<p>That really seemed to help:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Snakes</th>
+<th>Cache Hit %</th>
+<th>Cache Hits</th>
+<th>Cache Misses</th>
+<th>Branch Pred %</th>
+<th>IPC</th>
+<th>Iterations</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>900</td>
+<td><strong>94.10%</strong></td>
+<td>1,550,929</td>
+<td>75,275</td>
+<td>99.78%</td>
+<td>2.61</td>
+<td>14,195</td>
+</tr>
+<tr>
+<td>1000</td>
+<td><strong>92.91%</strong></td>
+<td>1,561,478</td>
+<td>97,616</td>
+<td>99.45%</td>
+<td>2.62</td>
+<td>14,195</td>
+</tr>
+</tbody></table></div>
+<p>Cache hit percentage jumped from ~78% to ~94%! The cache padding prevented false sharing between snake objects, dramatically improving cache performance.</p>
+<h2 id="performance-results">Performance Results</h2>
+<p>These two optimizations (HashMap → vector + cache padding) helped a lot:</p>
+<p><strong>10.422 → 2.562 μs</strong>
+<strong>~4x additional performance improvement</strong></p>
+<h2 id="whats-next">What&#39;s Next</h2>
+<p>Okay, now it&#39;s time to bump the grid size up because making the entire grid fit in cache felt too easy.</p>
+<p>So I bumped it to 10,000 × 10,000. Now we&#39;re talking about a grid that definitely doesn&#39;t fit in cache, and we&#39;ll need to get creative with memory access patterns.</p>
+<p>Optimizations in the next blog!</p>
+
+        </div>
+    
+    </div>
+</body>
+</html>
