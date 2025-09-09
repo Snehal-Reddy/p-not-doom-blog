@@ -2,6 +2,11 @@ const fs = require('fs');
 const path = require('path');
 const marked = require('marked');
 
+// Enable GitHub-Flavored Markdown (tables, etc.)
+marked.setOptions({
+    gfm: true,
+});
+
 // Create posts directory if it doesn't exist
 const postsDir = './posts';
 if (!fs.existsSync(postsDir)) {
@@ -279,6 +284,38 @@ function generateHTMLTemplate(title, content, isPost = false, frontmatter = {}) 
             padding: 0;
         }
 
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
         .post-content blockquote {
             border-left: 3px solid #007aff;
             padding-left: 1rem;
@@ -396,12 +433,16 @@ function generatePostSummaryHTML(post, slug) {
 // Function to generate individual blog post page
 function generatePostPage(post, slug) {
     const { frontmatter, body } = post;
-    
+    // Wrap tables for horizontal scrolling on small screens
+    const bodyWithWrappedTables = body
+        .replace(/<table>/g, '<div class="table-wrapper"><table>')
+        .replace(/<\/table>/g, '</table></div>');
+
     const content = `
         <h1>${frontmatter.title || 'Untitled Post'}</h1>
         <div class="post-meta">${frontmatter.date || 'No date'} • ${frontmatter.readTime || '5 min read'}</div>
         <div class="post-content">
-            ${body}
+            ${bodyWithWrappedTables}
         </div>
     `;
     

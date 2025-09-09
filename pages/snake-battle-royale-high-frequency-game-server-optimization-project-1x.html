@@ -6,13 +6,13 @@
     <title>Snake Battle Royale: High-Frequency Game Server optimization project 1/x</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits">
+    <meta name="description" content="IPC, game logic setup and low level fruits">
     <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
     <meta name="author" content="Snehal Reddy">
     
     <!-- Open Graph Meta Tags (for social media) -->
     <meta property="og:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 1/x">
-    <meta property="og:description" content="When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits">
+    <meta property="og:description" content="IPC, game logic setup and low level fruits">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-1x.html">
     <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
@@ -20,7 +20,7 @@
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 1/x">
-    <meta name="twitter:description" content="When 1000 snakes fight for survival, every microsecond counts. Setup and low level fruits">
+    <meta name="twitter:description" content="IPC, game logic setup and low level fruits">
     <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
     
     <!-- Additional SEO -->
@@ -207,6 +207,38 @@
             padding: 0;
         }
 
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
         .post-content blockquote {
             border-left: 3px solid #007aff;
             padding-left: 1rem;
@@ -305,13 +337,13 @@
         <div class="post-meta">August 31, 2025 • 8 min read</div>
         <div class="post-content">
             <h1 id="snake-battle-royale-high-frequency-game-server-optimization-project">Snake Battle Royale: High-Frequency Game Server optimization project</h1>
-<p><em>When 1000 snakes fight for survival, every microsecond counts.</em></p>
+<p><em>IPC,game logic setup and low level fruits</em></p>
 <p><img src="images/snake-battle-royale.png" alt="Blog image"></p>
 <h2 id="the-project">The Project</h2>
 <p>I&#39;ve been working on a high-frequency game server optimization project using a massive multiplayer snake battle royale as the test scenario. The goal? Learn and experiment with low-level optimization techniques in Rust by pushing tick rates to extreme limits.</p>
-<p><strong>Target Performance</strong>: 20,000+ ticks per second (0.05ms per tick) with 1000+ concurrent snakes.</p>
+<p><strong>Target Performance</strong>: 200,000+ ticks per second (5µs per tick) with 1000+ concurrent snakes.</p>
 <h3 id="the-game-concept">The Game Concept</h3>
-<p>Imagine 1000+ snakes moving simultaneously on a shared 2D grid. Each snake moves 1 unit in any direction per tick. They collide, consume food, and fight for territory—all while maintaining real-time performance constraints with sub-millisecond tick processing.</p>
+<p>Imagine 1000+ snakes moving simultaneously on a shared 2D grid. They collide, consume food, while maintaining real-time performance constraints with sub-millisecond tick processing.</p>
 <p>The architecture is intentionally simple but performance-critical:</p>
 <ul>
 <li>Single process with two dedicated threads pinned to separate CPU cores</li>
@@ -441,7 +473,7 @@ if self.grid.get_cell(head) == Cell::Snake {
 </ul>
 <p><strong>Total improvement</strong>: ~11x faster with cleaner, more maintainable code.</p>
 <h2 id="whats-next">What&#39;s Next</h2>
-<p>We&#39;re just getting warmed up. We haven&#39;t even touched any of the really juicy low-level stuff yet.</p>
+<p>We haven&#39;t even touched any of the really juicy low-level stuff yet.</p>
 <p>But for now, I&#39;m satisfied with the journey from 51.71 μs to 4.56 μs.</p>
 
         </div>
