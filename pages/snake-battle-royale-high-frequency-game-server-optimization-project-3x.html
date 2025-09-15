@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Battle Royale: High-Frequency Game Server optimization project 3/x</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="L3 Cache Thrashing + TinyDeque">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 3/x">
+    <meta property="og:description" content="L3 Cache Thrashing + TinyDeque">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-3x.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Snake Battle Royale: High-Frequency Game Server optimization project 3/x">
+    <meta name="twitter:description" content="L3 Cache Thrashing + TinyDeque">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-3x.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>Snake Battle Royale: High-Frequency Game Server optimization project 3/x</h1>
+        <div class="post-meta">September 15, 2025 • 11 min read</div>
+        <div class="post-content">
+            <h1 id="snake-battle-royale-high-frequency-game-server-optimization-project-part-3">Snake Battle Royale: High-Frequency Game Server optimization project (Part 3)</h1>
+<p><em>Hot Path optimization: When cache misses become your biggest enemy</em></p>
+<p><img src="images/tiny_rust.png" alt="Blog image"></p>
+<h2 id="the-cache-performance-reality-check">The Cache Performance Reality Check</h2>
+<p>After the previous optimizations brought us from 10.422 μs to 2.562 μs, I was feeling pretty good. But then I bumped the grid size to 10,000×10,000 (~100MB) and reality hit hard. The cache performance became worse as I had expcted. It was because things were big enough to not fit in my L3 cache anymore.</p>
+<h2 id="measuring-cache-and-branch-metrics">Measuring Cache and Branch Metrics</h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Snakes</th>
+<th>Cache Hit %</th>
+<th>Cache Hits</th>
+<th>Cache Misses</th>
+<th>Branch Pred %</th>
+<th>IPC</th>
+<th>Iterations</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>100</td>
+<td>53.36%</td>
+<td>9,136</td>
+<td>6,993</td>
+<td>99.77%</td>
+<td>2.85</td>
+<td>263</td>
+</tr>
+<tr>
+<td>300</td>
+<td>53.32%</td>
+<td>9,350</td>
+<td>7,274</td>
+<td>99.90%</td>
+<td>3.93</td>
+<td>223</td>
+</tr>
+<tr>
+<td>500</td>
+<td>54.02%</td>
+<td>17,990</td>
+<td>13,517</td>
+<td>99.93%</td>
+<td>4.35</td>
+<td>327</td>
+</tr>
+<tr>
+<td>700</td>
+<td>76.03%</td>
+<td>127,939</td>
+<td>33,894</td>
+<td>99.73%</td>
+<td>4.64</td>
+<td>1,615</td>
+</tr>
+<tr>
+<td>900</td>
+<td>71.62%</td>
+<td>160,699</td>
+<td>56,923</td>
+<td>99.82%</td>
+<td>4.65</td>
+<td>1,615</td>
+</tr>
+<tr>
+<td>1000</td>
+<td>69.95%</td>
+<td>226,756</td>
+<td>88,068</td>
+<td>99.87%</td>
+<td>4.63</td>
+<td>1,820</td>
+</tr>
+</tbody></table></div>
+<p>The pattern was clear: <strong>as snakes dispersed across the grid, we have more frequent cache misses</strong>. At 1000 snakes, we were only hitting cache ~70% of the time. That&#39;s a lot of expensive memory accesses.</p>
+<h2 id="cache-thrashing">Cache Thrashing!</h2>
+<p>The issue was in my object-oriented design philosophy. I had created clean, encapsulated methods for each class (Snake, Apple, etc.) that operated at a per-object level. While this made the code maintainable, it made global grid-level optimizations tricky.</p>
+<p>Here&#39;s what was happening in each tick:</p>
+<p><strong>Per Snake (1000 snakes per tick):</strong></p>
+<ol>
+<li><strong>READ</strong>: <code>grid.get_cell(&amp;new_head)</code> - Check for apple consumption</li>
+<li><strong>READ</strong>: <code>grid.get_cell(&amp;new_head)</code> - Check for collision  </li>
+<li><strong>WRITE</strong>: <code>grid.set_cell(*tail, Cell::Empty)</code> - Clear old tail</li>
+<li><strong>WRITE</strong>: <code>grid.set_cell(*head, Cell::Snake)</code> - Set new head</li>
+</ol>
+<p><strong>Per Apple:</strong></p>
+<ol>
+<li><strong>WRITE</strong>: <code>grid.set_cell(new_apple_pos, Cell::Apple)</code> - Spawn new apple</li>
+</ol>
+<p>With 1000 snakes, that&#39;s 4000+ random grid accesses per tick across a 10k×10k grid. We were essentially cache thrashing—jumping around randomly in a 100MB grid with no spatial locality.</p>
+<h2 id="the-spatial-batching-solution">The Spatial Batching Solution</h2>
+<p>I needed to transform random access patterns into spatially-ordered operations. The key insight: <strong>collect all movement records, sort them by position, then process in cache-friendly order</strong>.</p>
+<h3 id="the-new-algorithm">The New Algorithm</h3>
+<p><strong>Phase 1: Collect Records (NO Grid Reads)</strong></p>
+<pre><code>FOR each alive snake:
+    calculate new_head_position
+    create MovementRecord(snake_id, new_head_position, empty_cell)
+    add to records list
+</code></pre>
+<p><strong>Phase 2: Sort by Spatial Locality</strong></p>
+<pre><code>SORT records by (y_coordinate, x_coordinate)
+// This groups nearby operations for better cache utilization
+</code></pre>
+<p><strong>Phase 3-5: Combined Loop (Read, Process, Write Immediately)</strong></p>
+<pre><code>FOR each record in sorted order:
+    READ cell_at_new_head from grid
+    DEAL with Snake Collision
+    DEAL with apple eating
+    
+    HANDLE Snake Race conditions within tick()
+    
+    WRITE Snake to new_head position
+    IF not growing:
+        WRITE Empty to old tail position
+    UPDATE snake body
+</code></pre>
+<h3 id="1-partitioning-instead-of-full-sorting">1. Partitioning Instead of Full Sorting</h3>
+<p>Full sorting was expensive. Instead, I used <strong>spatial partitioning</strong> with 2^8 buckets:</p>
+<pre><code>CREATE 256 buckets (2^8)
+FOR each movement record:
+    calculate bucket_index = (y_coord &gt;&gt; 8) * 256 + (x_coord &gt;&gt; 8)
+    add record to buckets[bucket_index]
+</code></pre>
+<p>This gave us most of the cache benefits with much less overhead.</p>
+<h3 id="2-batched-tail-writes">2. Batched Tail Writes</h3>
+<p>The tail clearing writes were still causing cache misses. I collected these writes into buckets and processed them at the end:</p>
+<pre><code>DURING movement processing:
+    IF snake not growing:
+        add tail_position to tail_clears records
+
+AT END of tick:
+    FOR each tail_position in tail_clears records:
+        WRITE Empty to tail_position
+</code></pre>
+<h2 id="performance-results">Performance Results</h2>
+<p><strong>Before (Random Access):</strong></p>
+<ul>
+<li>1000 snakes: 69.95% cache hit rate</li>
+</ul>
+<p><strong>After (Spatial Batching):</strong></p>
+<ul>
+<li>1000 snakes: 78.42% cache hit rate</li>
+</ul>
+<p><strong>Cache hit rate improved from ~70% to ~78%</strong> - a solid improvement, though not as dramatic as I&#39;d hoped.</p>
+<h2 id="tinydeque-the-stack-first-approach">TinyDeque: The Stack-First Approach</h2>
+<p>After optimizing the grid access patterns, I turned my attention to snake body storage. Most snakes in the game are small (3-4 segments), so I suspected that heap allocation for every snake body was wasteful.</p>
+<h3 id="the-vecdeque-problem">The VecDeque Problem</h3>
+<p>The standard <code>VecDeque</code> allocates each snake body on the heap, which means:</p>
+<ul>
+<li><strong>1000 snakes = 1000 heap allocations</strong></li>
+<li><strong>Poor cache locality</strong> - snake bodies scattered across memory</li>
+<li><strong>Allocation overhead</strong> for small collections</li>
+</ul>
+<h3 id="my-custom-deque-attempt">My Custom Deque Attempt</h3>
+<p>I initially tried implementing a custom deque using <code>SmallVec</code> as the backing store:</p>
+<pre><code class="language-rust">pub struct Snake {
+    pub body: SmallVec&lt;[Point; 16]&gt;,  // Stack-allocated for small snakes
+    pub front_idx: usize,             // Circular buffer head
+    pub end_idx: usize,               // Circular buffer tail
+    // ...
+}
+</code></pre>
+<p><strong>The result?</strong> I realised it was going to be a bigger rabbit hole that I had imagined with all sorts of performance and edge case concerns. I was just about to spin off this new project and then ...</p>
+<h3 id="enter-tinydeque">Enter TinyDeque</h3>
+<p>I discovered the <code>tinydeque</code> crate - exactly what I needed!</p>
+<pre><code class="language-rust">pub struct Snake {
+    pub body: TinyDeque&lt;[Point; 16]&gt;,  // Stack-first, heap spill
+    // ...
+}
+</code></pre>
+<p><strong>TinyDeque&#39;s magic:</strong></p>
+<ul>
+<li><strong>Starts on the stack</strong> - small snakes use <code>ArrayDeque</code> (stack-allocated)</li>
+<li><strong>Automatic heap spill</strong> - when the stack buffer fills, seamlessly transitions to <code>VecDeque</code></li>
+<li><strong>Same API as VecDeque</strong> - drop-in replacement with no complexity</li>
+<li><strong>Best of both worlds</strong> - fast stack operations for small snakes, heap flexibility for large ones</li>
+</ul>
+<h2 id="final-results-the-performance-journey">Final Results: The Performance Journey</h2>
+<h3 id="the-numbers">The Numbers</h3>
+<p>For the 10_000 * 10_000 grid:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Optimization</th>
+<th>Performance</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Baseline</strong></td>
+<td>~18 μs</td>
+</tr>
+<tr>
+<td><strong>Spatial Batching + TinyDeque</strong></td>
+<td>~8.6 μs</td>
+</tr>
+</tbody></table></div>
+<p><strong>Total improvement: 52% faster</strong> - from ~18 μs down to ~8.6 μs per tick.</p>
+<h3 id="what-actually-mattered">What Actually Mattered</h3>
+<p>The performance journey taught me some valuable lessons about optimization:</p>
+<ol>
+<li><p><strong>Cache locality trumps algorithmic complexity</strong> - The spatial batching approach was more complex than the simple per-snake loop, but the cache benefits far outweighed the overhead.</p>
+</li>
+<li><p><strong>Measure, don&#39;t guess</strong> - There were quite a few things I&#39;ve tried, that seemed really good in theory, but never worked in practice.</p>
+</li>
+<li><p><strong>Premature optimization is still the root of all evil</strong> - ;)</p>
+</li>
+</ol>
+<p>But for now, I&#39;m happy with this performance. I am parking this project as I&#39;ve found other projects to bootstrap along the way!</p>
+
+        </div>
+    
+    </div>
+</body>
+</html>

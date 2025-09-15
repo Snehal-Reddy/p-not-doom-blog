@@ -1,7 +1,7 @@
 ---
 title: Snake Battle Royale: High-Frequency Game Server optimization project 1/x
 date: August 31, 2025
-readTime: 8 min read
+readTime: 12 min read
 summary: IPC, game logic setup and low level fruits
 ---
 

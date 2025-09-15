@@ -1,7 +1,7 @@
 ---
 title: Snake Battle Royale: High-Frequency Game Server optimization project 2/x
 date: Sept 08, 2025
-readTime: 8 min read
+readTime: 10 min read
 summary: When poor benchmarking, and cache misses bite back. 
 ---
 
