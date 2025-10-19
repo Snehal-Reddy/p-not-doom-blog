@@ -509,6 +509,31 @@ function generateSitemap(posts) {
     return sitemap;
 }
 
+// Function to update the Posts section in index.html while preserving the i3-style interface
+function updatePostsSection(posts) {
+    const indexPath = './index.html';
+    if (!fs.existsSync(indexPath)) {
+        console.log('⚠️  index.html not found, skipping Posts section update');
+        return;
+    }
+    
+    let indexContent = fs.readFileSync(indexPath, 'utf8');
+    
+    // Generate the new Posts section HTML
+    const postsHTML = posts.map(post => generatePostSummaryHTML(post, post.slug)).join('\n');
+    
+    // Find and replace the Posts section content
+    const postsSectionRegex = /(<div class="workspace" id="posts">[\s\S]*?<h2>Latest Projects & Thoughts<\/h2>)([\s\S]*?)(<\/div>\s*<!-- Contact Workspace -->)/;
+    
+    if (postsSectionRegex.test(indexContent)) {
+        indexContent = indexContent.replace(postsSectionRegex, `$1\n            ${postsHTML}\n        $3`);
+        fs.writeFileSync(indexPath, indexContent);
+        console.log('✅ Updated Posts section in index.html');
+    } else {
+        console.log('⚠️  Could not find Posts section in index.html to update');
+    }
+}
+
 // Function to build the complete HTML
 function buildHTML() {
     // Get all markdown files from posts directory
@@ -561,9 +586,8 @@ function buildHTML() {
         ${posts.map(post => generatePostSummaryHTML(post, post.slug)).join('\n')}
     `;
     
-    // Don't overwrite the custom index.html with i3-style interface
-    // const indexHTML = generateHTMLTemplate('Snehal Reddy - Systems Programming & Performance Optimization', indexContent);
-    // fs.writeFileSync('index.html', indexHTML);
+    // Update the Posts section in the custom index.html while preserving the i3-style interface
+    updatePostsSection(posts);
     
     // Generate sitemap.xml
     const sitemap = generateSitemap(posts);
@@ -572,7 +596,7 @@ function buildHTML() {
     console.log(`✅ Built ${posts.length} blog posts`);
     console.log(`✅ Individual post pages created in pages/ directory`);
     console.log(`✅ Generated sitemap.xml for SEO`);
-    console.log(`ℹ️  Skipped index.html generation (using custom i3-style interface)`);
+    console.log(`✅ Updated Posts section in index.html automatically`);
 }
 
 // Run the build

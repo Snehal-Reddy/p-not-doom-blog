@@ -197,4 +197,4 @@ While v0.1.0 is good enough for now, there's always room for improvement:
 
 - Support larger sizes
 - Optimise pop() and find_key_index() further()
-- Have optinal strogner guards against spill.
+- Have optinal stronger guards against spill.
