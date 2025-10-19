@@ -2,25 +2,31 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://p-not-doom.com/</loc>
-        <lastmod>2025-09-15</lastmod>
+        <lastmod>2025-10-19</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-1x.html</loc>
-        <lastmod>2025-09-15</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
         <loc>https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-2x.html</loc>
-        <lastmod>2025-09-15</lastmod>
+        <lastmod>2025-10-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
         <loc>https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-3x.html</loc>
-        <lastmod>2025-09-15</lastmod>
+        <lastmod>2025-10-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://p-not-doom.com/pages/tiny-lru-fast-small-then-spill-lru-cache-1x.html</loc>
+        <lastmod>2025-10-19</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://p-not-doom.com/pages/snake-battle-royale-high-frequency-game-server-optimization-project-1x.html</loc>
+        <lastmod>2025-10-19</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
