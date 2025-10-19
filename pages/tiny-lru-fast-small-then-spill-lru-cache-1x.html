@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tiny-lru: Fast Small-then-Spill LRU cache 1/x</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Designing a hybrid LRU cache that dominates small workloads while scaling to larger ones">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="tiny-lru: Fast Small-then-Spill LRU cache 1/x">
+    <meta property="og:description" content="Designing a hybrid LRU cache that dominates small workloads while scaling to larger ones">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/tiny-lru-fast-small-then-spill-lru-cache-1x.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="tiny-lru: Fast Small-then-Spill LRU cache 1/x">
+    <meta name="twitter:description" content="Designing a hybrid LRU cache that dominates small workloads while scaling to larger ones">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/tiny-lru-fast-small-then-spill-lru-cache-1x.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>tiny-lru: Fast Small-then-Spill LRU cache 1/x</h1>
+        <div class="post-meta">October 19, 2025 • 6 min read</div>
+        <div class="post-content">
+            <h1 id="designing-and-implementing-v010-of-tiny-lru">Designing and Implementing v0.1.0 of tiny-lru</h1>
+<p><em>A Fast Small-then-Spill LRU cache combining the raw speed of stack-based LRUs with the scalability of heap-backed ones</em></p>
+<p><img src="images/tiny_lru.png" alt="Blog image"></p>
+<h2 id="background">Background</h2>
+<p>LRU caches are fundamental data structures, but existing Rust implementations force a trade-off: optimize for small caches with stack storage, or optimize for large caches with heap storage.</p>
+<p>The Rust ecosystem offers a few LRU implementations, but what was missing was a hybrid approach. The <code>tinyvec</code> crate successfully solved this for vectors—starting with inline array storage and automatically &quot;spilling&quot; to heap when needed. This pattern optimizes for the common case (small collections) while handling edge cases (large collections).</p>
+<p><code>tiny-lru</code> applies this proven pattern to LRU caches. For small caches, it provides zero allocations, linear search performance, and excellent cache locality. When capacity is exceeded, it transparently transitions to heap-backed storage with O(1) operations.</p>
+<h2 id="design-philosophy-small-first-scale-second">Design Philosophy: Small-First, Scale-Second</h2>
+<p>The core insight behind <code>tiny-lru</code> is simple: <strong>optimize for the common case first, then handle the edge cases</strong>.</p>
+<p>For very small working sets, entries are stored inline on the stack in a fixed-capacity array, giving fast, allocation-free lookups and updates with excellent cache locality. Once the inline capacity is exceeded, it transparently &quot;spills&quot; into a heap-backed LRU (hash map + linked list), ensuring O(1) operations at larger scales.</p>
+<p>The design goal is zero compromise on micro-performance for small caches while still supporting larger workloads without falling off a performance cliff. In short: a <code>tinyvec</code>-style hybrid LRU optimized for both tiny hot paths (embedded, HFT, real-time) and unbounded dynamic growth when needed.</p>
+<h2 id="the-two-tier-architecture">The Two-Tier Architecture</h2>
+<h3 id="pre-spill-stack-first-performance">Pre-Spill: Stack-First Performance</h3>
+<p>When your cache is small (≤ N entries), everything happens on the stack:</p>
+<pre><code class="language-rust">struct TinyLru&lt;K, V, const N: usize&gt; {
+    // Unified node storage; starts inline, spills to heap as capacity grows
+    store: tinyvec::TinyVec&lt;[Entry&lt;K, V&gt;; N]&gt;,
+    
+    // Current number of live items
+    size: u16,
+    
+    // LRU linkage heads (indices into `store`)
+    head: u16, // LRU index
+    tail: u16, // MRU index
+    
+    // Key → index map. Lazily allocated ONLY on first spill
+    index: Option&lt;hashbrown::HashMap&lt;K, u16&gt;&gt;,
+    
+    capacity: u16,
+}
+</code></pre>
+<p><strong>Key benefits of the pre-spill design:</strong></p>
+<ul>
+<li><strong>Zero allocations</strong> - everything fits in the stack-allocated <code>TinyVec</code></li>
+<li><strong>Linear search</strong> - for small N, linear search is faster than hash lookups</li>
+<li><strong>Cache-friendly</strong> - all data is contiguous in memory</li>
+</ul>
+<h3 id="post-spill-heap-backed-scalability">Post-Spill: Heap-Backed Scalability</h3>
+<p>When you exceed the inline capacity, the cache automatically &quot;spills&quot;:</p>
+<ol>
+<li><strong>All entries move to heap storage</strong> via <code>TinyVec</code>&#39;s automatic spill</li>
+<li><strong>Hash map index is allocated</strong> for O(1) lookups</li>
+<li><strong>Linked list structure is maintained</strong> for LRU ordering</li>
+<li><strong>Same API, different backing</strong> - transparent to the user</li>
+</ol>
+<h2 id="basic-v010-api">Basic v0.1.0 API</h2>
+<p>The API is designed to be a drop-in replacement for standard LRU caches:</p>
+<pre><code class="language-rust">// Core operations
+push(key, value)                    // Insert or update; promotes on hit
+pop() -&gt; Option&lt;(K, V)&gt;             // Remove and return the LRU entry
+get(&amp;mut self, key: &amp;K) -&gt; Option&lt;&amp;V&gt;        // Lookup with promotion
+get_mut(&amp;mut self, key: &amp;K) -&gt; Option&lt;&amp;mut V&gt; // Mutable lookup with promotion
+peek(&amp;self, key: &amp;K) -&gt; Option&lt;&amp;V&gt;  // Lookup without promotion
+remove(&amp;mut self, key: &amp;K) -&gt; Option&lt;(K, V)&gt; // Remove by key
+
+// Capacity management
+set_capacity(&amp;mut self, new_cap: u16) // Adjust total capacity
+capacity() -&gt; u16
+len() -&gt; u16
+is_empty() -&gt; bool
+
+// Spill management
+is_spilled() -&gt; bool    // Check if using heap storage
+can_unspill() -&gt; bool   // Check if unspill is possible
+unspill() -&gt; bool       // Move back to inline storage
+</code></pre>
+<h2 id="the-aos-vs-soa-experiment-and-why-i-abandoned-it">The AoS vs SoA Experiment (And Why I Abandoned It)</h2>
+<p>Initially, I considered a Struct of Arrays (SoA) approach to enable SIMD optimizations:</p>
+<pre><code class="language-rust">struct TinyLruSoA&lt;K, V, const N: usize&gt; {
+    hashes: TinyVec&lt;[u64; N]&gt;,        // Pre-computed hashes for SIMD
+    keys: TinyVec&lt;[K; N]&gt;,            // Actual keys
+    values: TinyVec&lt;[V; N]&gt;,          // Values
+    next: TinyVec&lt;[u16; N]&gt;,          // DLL next pointers
+    prev: TinyVec&lt;[u16; N]&gt;,          // DLL prev pointers
+    // ...
+}
+</code></pre>
+<p><strong>The theory</strong>: Separate arrays would enable SIMD-optimized hash comparisons and better cache utilization.</p>
+<p><strong>The reality</strong>: The SoA approach was actually slower in practice. The overhead of maintaining separate arrays and the complexity of SIMD operations outweighed the theoretical benefits. Sometimes the simple solution really is the best solution.</p>
+<h2 id="performance-results">Performance Results:</h2>
+<p>I benchmarked <code>tiny-lru</code> against the major Rust LRU implementations across different cache sizes. </p>
+<h3 id="pre-spill-performance-small-cache-sizes">Pre-Spill Performance (Small Cache Sizes)</h3>
+<p>Performance comparison showing relative speed (higher numbers = slower). <code>tiny-lru</code> is the baseline (1.00).</p>
+<p><strong>Push Operations:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>2</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>tiny-lru 👍</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>const-lru</td>
+<td>2.00</td>
+<td>2.39</td>
+<td>2.68</td>
+<td>2.90</td>
+<td>2.65</td>
+</tr>
+<tr>
+<td>lru-rs</td>
+<td>6.96</td>
+<td>7.22</td>
+<td>6.02</td>
+<td>5.49</td>
+<td>3.67</td>
+</tr>
+<tr>
+<td>schnellru</td>
+<td>2.36</td>
+<td>6.42</td>
+<td>7.84</td>
+<td>7.66</td>
+<td>5.61</td>
+</tr>
+</tbody></table></div>
+<p><strong>Pop Operations:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>2</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>tiny-lru 👍</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>const-lru</td>
+<td>2.58</td>
+<td>3.76</td>
+<td>3.53</td>
+<td>3.84</td>
+<td>5.17</td>
+</tr>
+<tr>
+<td>lru-rs</td>
+<td>14.05</td>
+<td>9.33</td>
+<td>7.10</td>
+<td>4.13</td>
+<td>3.58</td>
+</tr>
+<tr>
+<td>schnellru</td>
+<td>1.15</td>
+<td>1.31</td>
+<td>1.33</td>
+<td>1.11</td>
+<td>0.83</td>
+</tr>
+</tbody></table></div>
+<p><strong>Peek Operations:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>2</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>tiny-lru 👍</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>const-lru</td>
+<td>1.90</td>
+<td>2.37</td>
+<td>2.03</td>
+<td>1.56</td>
+<td>1.16</td>
+</tr>
+<tr>
+<td>lru-rs</td>
+<td>3.58</td>
+<td>4.29</td>
+<td>3.47</td>
+<td>2.25</td>
+<td>1.12</td>
+</tr>
+<tr>
+<td>schnellru</td>
+<td>1.16</td>
+<td>1.60</td>
+<td>1.60</td>
+<td>1.20</td>
+<td>0.77</td>
+</tr>
+</tbody></table></div>
+<p><strong>Get Operations:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>2</th>
+<th>4</th>
+<th>8</th>
+<th>16</th>
+<th>32</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>tiny-lru 👍</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>const-lru</td>
+<td>2.00</td>
+<td>3.02</td>
+<td>2.80</td>
+<td>1.77</td>
+<td>1.30</td>
+</tr>
+<tr>
+<td>lru-rs</td>
+<td>3.11</td>
+<td>3.08</td>
+<td>2.56</td>
+<td>1.46</td>
+<td>0.77</td>
+</tr>
+<tr>
+<td>schnellru</td>
+<td>0.98</td>
+<td>1.14</td>
+<td>1.21</td>
+<td>0.90</td>
+<td>0.60</td>
+</tr>
+</tbody></table></div>
+<p><strong>The results are great-ish</strong>: <code>tiny-lru</code> is consistently faster across small sizes. Although as N increases traditional lru&#39;s start catching up.</p>
+<h3 id="post-spill-performance-large-cache-sizes">Post-Spill Performance (Large Cache Sizes)</h3>
+<p>For larger caches, <code>tiny-lru</code> maintains competitive performance:</p>
+<p><strong>Peek Operations:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>100</th>
+<th>200</th>
+<th>500</th>
+<th>1000</th>
+<th>2000</th>
+<th>5000</th>
+<th>10000</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>lru-rs</td>
+<td>2.11</td>
+<td>2.26</td>
+<td>2.22</td>
+<td>2.18</td>
+<td>2.15</td>
+<td>1.71</td>
+<td>1.46</td>
+</tr>
+<tr>
+<td>schnellru</td>
+<td>2.59</td>
+<td>2.43</td>
+<td>1.54</td>
+<td>1.60</td>
+<td>1.62</td>
+<td>1.71</td>
+<td>1.70</td>
+</tr>
+<tr>
+<td>tiny-lru 👍</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+</tbody></table></div>
+<p><strong>Get Operations:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>100</th>
+<th>200</th>
+<th>500</th>
+<th>1000</th>
+<th>2000</th>
+<th>5000</th>
+<th>10000</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>lru-rs</td>
+<td>1.64</td>
+<td>1.60</td>
+<td>1.56</td>
+<td>1.27</td>
+<td>1.16</td>
+<td>1.07</td>
+<td>0.89</td>
+</tr>
+<tr>
+<td>schnellru</td>
+<td>1.49</td>
+<td>1.28</td>
+<td>0.86</td>
+<td>0.83</td>
+<td>0.82</td>
+<td>0.82</td>
+<td>0.83</td>
+</tr>
+<tr>
+<td>tiny-lru 👍</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+</tbody></table></div>
+<p><strong>Put Operations:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>100</th>
+<th>200</th>
+<th>500</th>
+<th>1000</th>
+<th>2000</th>
+<th>5000</th>
+<th>10000</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>lru-rs</td>
+<td>8.17</td>
+<td>1.73</td>
+<td>1.54</td>
+<td>1.51</td>
+<td>1.34</td>
+<td>1.34</td>
+<td>1.36</td>
+</tr>
+<tr>
+<td>schnellru</td>
+<td>1.09</td>
+<td>1.33</td>
+<td>1.66</td>
+<td>1.74</td>
+<td>1.64</td>
+<td>1.53</td>
+<td>1.56</td>
+</tr>
+<tr>
+<td>tiny-lru 👍</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+<td>1.00</td>
+</tr>
+</tbody></table></div>
+<h2 id="why-keeping-things-simple-paid-off">Why Keeping Things Simple Paid Off</h2>
+<p>The performance results validate the &quot;simple is better&quot; philosophy:</p>
+<ol>
+<li><strong>Linear search beats hash tables</strong> for small N (typically N ≤ 32)</li>
+<li><strong>Stack allocation beats heap allocation</strong> for predictable workloads</li>
+<li><strong>Contiguous memory beats pointer chasing</strong> for cache performance</li>
+<li><strong>Two-tier design beats one-size-fits-all</strong> for mixed workloads</li>
+</ol>
+<h2 id="future-work">Future Work</h2>
+<p>While v0.1.0 is good enough for now, there&#39;s always room for improvement:</p>
+<ul>
+<li>Support larger sizes</li>
+<li>Optimise pop() and find_key_index() further()</li>
+<li>Have optinal strogner guards against spill.</li>
+</ul>
+
+        </div>
+    
+    </div>
+</body>
+</html>
