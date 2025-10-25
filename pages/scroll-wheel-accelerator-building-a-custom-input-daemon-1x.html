@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Wheel Accelerator: Building a Custom Input Daemon 1/x</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="From kernel drivers to logistic curves - building a custom scroll acceleration daemon">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="Scroll Wheel Accelerator: Building a Custom Input Daemon 1/x">
+    <meta property="og:description" content="From kernel drivers to logistic curves - building a custom scroll acceleration daemon">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/scroll-wheel-accelerator-building-a-custom-input-daemon-1x.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Scroll Wheel Accelerator: Building a Custom Input Daemon 1/x">
+    <meta name="twitter:description" content="From kernel drivers to logistic curves - building a custom scroll acceleration daemon">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/scroll-wheel-accelerator-building-a-custom-input-daemon-1x.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>Scroll Wheel Accelerator: Building a Custom Input Daemon 1/x</h1>
+        <div class="post-meta">October 25, 2025 • 8 min read</div>
+        <div class="post-content">
+            <h1 id="scroll-wheel-accelerator-building-a-custom-input-daemon">Scroll Wheel Accelerator: Building a Custom Input Daemon</h1>
+<p><em>From kernel drivers to logistic curves - building a custom scroll acceleration daemon</em></p>
+<p><img src="images/mouse.png" alt="Blog image"></p>
+<h2 id="the-problem-smart-mouse-dumb-firmware">The Problem: Smart Mouse, Dumb Firmware</h2>
+<p>I recently bought an overpriced mouse for its &quot;smart&quot; scroll wheel. It&#39;s supposed to figure out if I need precise scrolling or quick navigation through lengthy documentation and code. Well, let&#39;s just say my preferences did not align with the firmware engineers&#39; vision. The acceleration was either too aggressive or too conservative, never hitting that sweet spot.</p>
+<p>So I decided to take matters into my own hands and build a custom scroll acceleration daemon.</p>
+<h2 id="understanding-the-input-pipeline">Understanding the Input Pipeline</h2>
+<p>First, I needed to understand how mouse input flows through the Linux system. The pipeline looks like this:</p>
+<p><strong>Mouse Hardware → Kernel Driver (HID) → Kernel Subsystem (evdev) → Userspace Driver (libinput) → Xorg Server → i3 Window Manager → Focused Application</strong></p>
+<p>Let me trace through the actual devices on my system:</p>
+<pre><code class="language-bash">$ ls -l /dev/input/by-id/
+total 0
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Keychron_Keychron_K2-event-if01 -&gt; ../event9
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Keychron_Keychron_K2-event-kbd -&gt; ../event8
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Razer_Razer_Basilisk_V3_Pro_000000000000-event-if01 -&gt; ../event6
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Razer_Razer_Basilisk_V3_Pro_000000000000-event-mouse -&gt; ../event3
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Razer_Razer_Basilisk_V3_Pro_000000000000-if01-event-kbd -&gt; ../event4
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Razer_Razer_Basilisk_V3_Pro_000000000000-if01-event-mouse -&gt; ../event5
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Razer_Razer_Basilisk_V3_Pro_000000000000-if01-mouse -&gt; ../mouse1
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Razer_Razer_Basilisk_V3_Pro_000000000000-if02-event-kbd -&gt; ../event7
+lrwxrwxrwx 1 root root 9 2025-10-18 14:39 usb-Razer_Razer_Basilisk_V3_Pro_000000000000-mouse -&gt; ../mouse0
+</code></pre>
+<p>My Razer mouse shows up as <code>/dev/input/event3</code>. Time to examine the raw events.</p>
+<h3 id="raw-kernel-events">Raw Kernel Events</h3>
+<p>Using <code>evtest</code> to examine the raw events from the kernel:</p>
+<pre><code class="language-bash">$ sudo evtest /dev/input/event3
+
+Event: time 1760892257.371629, type 2 (EV_REL), code 11 (REL_WHEEL_HI_RES), value -120
+Event: time 1760892257.371629, -------------- SYN_REPORT ------------
+Event: time 1760892257.375613, type 2 (EV_REL), code 8 (REL_WHEEL), value -1
+Event: time 1760892257.375613, type 2 (EV_REL), code 11 (REL_WHEEL_HI_RES), value -120
+Event: time 1760892257.375613, type 2 (EV_REL), code 1 (REL_Y), value -1
+Event: time 1760892257.375613, -------------- SYN_REPORT ------------
+Event: time 1760892257.376567, type 2 (EV_REL), code 0 (REL_X), value 1
+Event: time 1760892257.376567, -------------- SYN_REPORT ------------
+Event: time 1760892257.379603, type 2 (EV_REL), code 8 (REL_WHEEL), value -1
+Event: time 1760892257.379603, type 2 (EV_REL), code 11 (REL_WHEEL_HI_RES), value -120
+Event: time 1760892257.379603, type 2 (EV_REL), code 1 (REL_Y), value -1
+Event: time 1760892257.379603, -------------- SYN_REPORT ------------
+Event: time 1760892257.383656, type 2 (EV_REL), code 8 (REL_WHEEL), value -1
+Event: time 1760892257.383656, type 2 (EV_REL), code 11 (REL_WHEEL_HI_RES), value -120
+Event: time 1760892257.383656, type 2 (EV_REL), code 0 (REL_X), value 1
+Event: time 1760892257.383656, -------------- SYN_REPORT ------------
+Event: time 1760892257.386613, type 2 (EV_REL), code 1 (REL_Y), value -1
+Event: time 1760892257.386613, -------------- SYN_REPORT ------------
+Event: time 1760892257.387677, type 2 (EV_REL), code 8 (REL_WHEEL), value -1
+Event: time 1760892257.387677, type 2 (EV_REL), code 11 (REL_WHEEL_HI_RES), value -120
+</code></pre>
+<p>The raw events from the kernel are very basic. <code>libinput</code> interprets them, handles device quirks, and adds features like pointer acceleration and scroll speed adjustments.</p>
+<h3 id="processed-events-via-libinput">Processed Events via libinput</h3>
+<pre><code class="language-bash">$ sudo libinput debug-events /dev/input/event3
+
+event3   POINTER_SCROLL_WHEEL    +15.085s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.095s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.105s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.115s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.125s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.135s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.145s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.155s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+event3   POINTER_SCROLL_WHEEL    +15.165s	vert 15.00/120.0* horiz 0.00/0.0 (wheel)
+
+[ 24.626] (II) Using input driver &#39;libinput&#39; for &#39;Razer Razer Basilisk V3 Pro&#39;
+</code></pre>
+<p>The Xorg server recognizes the mouse and assigns the <code>xf86-input-libinput</code> driver to handle it.</p>
+<h2 id="choosing-the-right-approach">Choosing the Right Approach</h2>
+<p>One approach was to hack the kernel driver. I deal with kernel space and below for a living, and while I understand the power available there, it&#39;s most likely overkill. Plus, if something can be done at a higher exception level, I would prefer that any day.</p>
+<p><strong>Chosen Approach: The evdev/uinput Userspace Daemon</strong></p>
+<pre><code>evdev -&gt; process -&gt; uinput
+</code></pre>
+<p>This is the clean, modern, and display-server-agnostic way to handle input transformation. The daemon acts as a man-in-the-middle for mouse events.</p>
+<h3 id="how-it-works">How It Works</h3>
+<ol>
+<li><p><strong>Create a Virtual Mouse</strong>: Using the kernel&#39;s <code>uinput</code> module, the daemon creates a new virtual mouse device (e.g., <code>/dev/input/eventX</code>). This virtual device looks like real hardware to the rest of the system (libinput, Xorg, etc.).</p>
+</li>
+<li><p><strong>Grab the Physical Mouse</strong>: The daemon finds the real mouse device (<code>/dev/input/event3</code>) and &quot;grabs&quot; it. This gives exclusive access, preventing libinput and Xorg from seeing raw events directly—crucial for avoiding double-inputs.</p>
+</li>
+<li><p><strong>The Main Loop (Read, Process, Write)</strong>:</p>
+<ul>
+<li>Continuously read raw evdev events from the physical mouse</li>
+<li>Pass through mouse clicks and movements unchanged</li>
+<li>Apply custom acceleration logic to <code>REL_WHEEL</code> events</li>
+<li>Buffer events, track speed, and write modified events to the virtual mouse</li>
+</ul>
+</li>
+<li><p><strong>The System Uses the Virtual Mouse</strong>: libinput and Xorg automatically detect the new virtual mouse and use it for cursor control, completely unaware of the interception and modification.</p>
+</li>
+</ol>
+<h3 id="implementation-basic-pass-through-daemon">Implementation: Basic Pass-Through Daemon</h3>
+<p>I used the <a href="https://github.com/emberian/evdev.git">Rust evdev crate</a> to build a basic pass-through daemon to understand the flow.</p>
+<h2 id="understanding-scroll-events">Understanding Scroll Events</h2>
+<p>The implementation required batching events properly. Instead of emitting events one by one, I collect all events from a single <code>fetch_events()</code> call and emit them together as a batch. This ensures that related events (like <code>REL_WHEEL</code> and <code>REL_WHEEL_HI_RES</code>) are sent together.</p>
+<p>Here&#39;s what the scroll events look like:</p>
+<pre><code>[2025-10-22T06:30:43Z INFO  anxious_scroll_daemon] Event: InputEvent { time: SystemTime { tv_sec: 0, tv_nsec: 0 }, type: RELATIVE, code: REL_WHEEL, value: -1 }
+[2025-10-22T06:30:43Z INFO  anxious_scroll_daemon] Event: InputEvent { time: SystemTime { tv_sec: 0, tv_nsec: 0 }, type: RELATIVE, code: REL_WHEEL_HI_RES, value: -120 }
+[2025-10-22T06:30:43Z INFO  anxious_scroll_daemon] Event: InputEvent { time: SystemTime { tv_sec: 1761114643, tv_nsec: 974324000 }, type: SYNCHRONIZATION, code: SYN_REPORT, value: 0 }
+[2025-10-22T06:30:43Z INFO  anxious_scroll_daemon] --------------------------------
+</code></pre>
+<p>Both <code>REL_WHEEL_HI_RES</code> and <code>REL_WHEEL</code> are sent, followed by a <code>SYN_REPORT</code>. According to the Linux kernel documentation:</p>
+<p><strong>REL_WHEEL, REL_HWHEEL:</strong>
+These codes are used for vertical and horizontal scroll wheels, respectively. The value is the number of detents moved on the wheel, the physical size of which varies by device. For high-resolution wheels this may be an approximation based on the high-resolution scroll events. These event codes are legacy codes and <code>REL_WHEEL_HI_RES</code> and <code>REL_HWHEEL_HI_RES</code> should be preferred where available.</p>
+<p><strong>REL_WHEEL_HI_RES, REL_HWHEEL_HI_RES:</strong>
+High-resolution scroll wheel data. The accumulated value 120 represents movement by one detent. For devices that do not provide high-resolution scrolling, the value is always a multiple of 120. For devices with high-resolution scrolling, the value may be a fraction of 120.</p>
+<p>If a vertical scroll wheel supports high-resolution scrolling, this code will be emitted in addition to <code>REL_WHEEL</code> or <code>REL_HWHEEL</code>. The <code>REL_WHEEL</code> and <code>REL_HWHEEL</code> may be an approximation based on the high-resolution scroll events.</p>
+<p><strong>SYN_REPORT:</strong>
+Used to synchronize and separate events into packets of input data changes occurring at the same moment in time. For example, motion of a mouse may set the <code>REL_X</code> and <code>REL_Y</code> values for one motion, then emit a <code>SYN_REPORT</code>.</p>
+<h3 id="why-both-events">Why Both Events?</h3>
+<p>My mouse is using the standard HID driver. Let me examine the kernel source:</p>
+<pre><code class="language-c">static void hidinput_handle_scroll(struct hid_usage *usage,
+                                   struct input_dev *input,
+                                   __s32 value)
+{
+        int code;
+        int hi_res, lo_res;
+
+        if (value == 0)
+                return;
+
+        if (usage-&gt;code == REL_WHEEL_HI_RES)
+                code = REL_WHEEL;
+        else
+                code = REL_HWHEEL;
+
+        /*
+         * Windows reports one wheel click as value 120. Where a high-res
+         * scroll wheel is present, a fraction of 120 is reported instead.
+         * Our REL_WHEEL_HI_RES axis does the same because all HW must
+         * adhere to the 120 expectation.
+         */
+        hi_res = value * 120/usage-&gt;resolution_multiplier;
+
+        usage-&gt;wheel_accumulated += hi_res;
+        lo_res = usage-&gt;wheel_accumulated/120;
+        if (lo_res)
+                usage-&gt;wheel_accumulated -= lo_res * 120;
+
+        input_event(input, EV_REL, code, lo_res);
+        input_event(input, EV_REL, usage-&gt;code, hi_res);
+}
+</code></pre>
+<p>That&#39;s interesting! The driver accumulates high-resolution values in <code>usage-&gt;wheel_accumulated</code> and then calculates a low-resolution value (<code>lo_res</code>) by dividing the accumulated value by 120. </p>
+<p>This design allows applications to choose between low-res or hi-res based on their use case. The kernel provides both for maximum compatibility.</p>
+<p><strong>Decision</strong>: I&#39;ll work with the high-resolution values for more precise acceleration control. At least all my applications were working fine capturing just the acceleration control for now!</p>
+<p>Now that I understood the event structure, it was time to figure out how to actually transform these values.</p>
+<h2 id="designing-the-acceleration-function">Designing the Acceleration Function</h2>
+<p>Now for the fun part: choosing the transformation function. What do I want?</p>
+<p><strong>Requirements:</strong></p>
+<ul>
+<li>When scrolling slowly, sensitivity should be high (scroll should be slow) for precision</li>
+<li>As scrolling speed increases, sensitivity should dynamically decrease to enable fast navigation</li>
+<li>Smooth, natural feeling acceleration curve</li>
+</ul>
+<p>I initially experimented with linear curves, but they felt too abrupt. I&#39;m a sucker for smooth curves—&quot;A curve is said to be smooth if it has no singular points, in other words if it has a (unique) tangent at all points.&quot;</p>
+<h3 id="the-logistic-model">The Logistic Model</h3>
+<p>I chose the logistic model because it tapers off naturally and I can easily control the ramp-up. The basic idea is inspired by Quake Live acceleration, where faster scrolling leads to higher acceleration multipliers. Instead of piecewise ramp-up and ramp-down functions, I used a smooth sigmoid curve.</p>
+<p><img src="images/logit.png" alt="Logistic Function Visualization"></p>
+<p>The daemon uses a logistic function for smooth, natural acceleration:</p>
+<pre><code>f(velocity) = max_sensitivity / (1 + C * e^(-ramp_rate * velocity))
+</code></pre>
+<p>To achieve the desired behavior at zero velocity, we set:</p>
+<pre><code>C = (max_sensitivity / base_sensitivity) - 1
+</code></pre>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><code>base_sensitivity</code>: Starting sensitivity (default: 1.0)</li>
+<li><code>max_sensitivity</code>: Maximum sensitivity (default: 15.0) </li>
+<li><code>ramp_rate</code>: How quickly to accelerate (default: 0.3)</li>
+</ul>
+<p>I quickly implemented this, and test it out and it felt great, and I was very satisfied with it. The scroll acceleration now feels natural and responsive, providing precise control for small movements while enabling rapid navigation through long documents.</p>
+<p>But there&#39;s more things to do!</p>
+<h2 id="future-work">Future Work</h2>
+<p>While the current implementation works well for my needs, there&#39;s somethings that need to done yet:</p>
+<ol>
+<li><strong>Benchmarking</strong>: Measure the daemon&#39;s performance impact and optimize for minimal latency</li>
+<li><strong>Performance optimization</strong>: Hyperfocus on reducing event processing overhead</li>
+<li><strong>Packaging</strong>: Create a proper systemd service and configuration management</li>
+<li><strong>Advanced features</strong>: Add per-application acceleration profiles and gesture recognition</li>
+<li><strong>Cross-platform support</strong>: Extend to other input systems beyond Linux evdev</li>
+</ol>
+<p>The journey from frustrated user to custom input daemon was both educational and satisfying. Sometimes the best solution is the one you build yourself!</p>
+
+        </div>
+    
+    </div>
+</body>
+</html>
