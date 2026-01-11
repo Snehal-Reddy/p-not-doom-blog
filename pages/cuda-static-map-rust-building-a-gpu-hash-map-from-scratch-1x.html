@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuda Static Map Rust: Building a GPU Hash Map from Scratch 1/x</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="From Rust type system alignment hacks to GPU vectorisation: laying the foundation for GPU hashing">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="Cuda Static Map Rust: Building a GPU Hash Map from Scratch 1/x">
+    <meta property="og:description" content="From Rust type system alignment hacks to GPU vectorisation: laying the foundation for GPU hashing">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/cuda-static-map-rust-building-a-gpu-hash-map-from-scratch-1x.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cuda Static Map Rust: Building a GPU Hash Map from Scratch 1/x">
+    <meta name="twitter:description" content="From Rust type system alignment hacks to GPU vectorisation: laying the foundation for GPU hashing">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/cuda-static-map-rust-building-a-gpu-hash-map-from-scratch-1x.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>Cuda Static Map Rust: Building a GPU Hash Map from Scratch 1/x</h1>
+        <div class="post-meta">January 11, 2025 • 10 min read</div>
+        <div class="post-content">
+            <h1 id="cuda-static-map-rust-building-a-gpu-hash-map-from-scratch-1x">Cuda Static Map Rust: Building a GPU Hash Map from Scratch 1/x</h1>
+<p><em>From Rust type system alignment hacks to GPU vectorisation: laying the foundation for GPU hashing</em></p>
+<p>// TODO: Add image
+<img src="images/wheres_waldo.png" alt="Blog image"></p>
+<h2 id="the-goal">The Goal</h2>
+<p>We&#39;re building: a statically-sized hash map that runs entirely on CUDA-enabled GPUs, written in Rust. Think of it as Rust&#39;s <code>HashMap</code> with the following constraints:</p>
+<ul>
+<li><strong>Supports bulk operations</strong>: Insert, find, or check containment for thousands of keys in parallel</li>
+<li><strong>Uses open addressing</strong>: Like cuCollections, we&#39;ll use probing schemes (linear probing, double hashing) to handle collisions</li>
+<li><strong>Has static capacity</strong>: The map size is fixed at creation time, trading flexibility for performance</li>
+<li><strong>Works with small types</strong>: Keys and values must be ≤ 8 bytes each (a constraint we inherit from CUDA&#39;s memory model)</li>
+</ul>
+<p>This is the first in a series of blog posts documenting the journey. Today, we&#39;ll cover the foundation: understanding the goal, surviving the dependency nightmare, setting up a dual-target build system, and implementing the core building blocks.</p>
+<h2 id="dependency-nightmare">Dependency Nightmare</h2>
+<p>Every Rust GPU project starts the same way: &quot;How do I even compile Rust code for the GPU?&quot; The answer, unfortunately, is not as simple as adding <code>#[target = &quot;nvptx64-nvidia-cuda&quot;]</code> to your <code>Cargo.toml</code>.</p>
+<p>The Rust CUDA ecosystem is still in its early days. The old <code>cuda_builder</code> crate on crates.io? Last updated 4 years ago. The <a href="https://github.com/Rust-GPU/rust-cuda">Rust-CUDA project</a>? For some reason, I decided to not use Docker, and duck my system dependancies instead.</p>
+<p>I started by trying to build <code>rustc_codegen_nvvm</code> (the codegen backend that compiles Rust to NVVM IR, which then becomes PTX) from source. This meant installing:</p>
+<ul>
+<li><code>libssl-dev</code> (because of course)</li>
+<li><code>libxrandr</code> (wait, why?)</li>
+<li>OptiX SDK (specific version, ofc)</li>
+<li>cuDNN SDK (specific version, ofc)</li>
+<li>Specific LLVM versions that may or may not match what rustc expects</li>
+<li>Setting up environment variables like <code>CUDNN_INCLUDE_DIR</code>, <code>OPTIX_ROOT</code>, and <code>LLVM_CONFIG</code></li>
+</ul>
+<p>After wasting time wrestling with version mismatches and mysterious linker errors, I decided <strong>I don&#39;t want to fight this battle</strong>. Life is too short to debug why <code>libnvvm.so</code> can&#39;t find <code>libcudart.so.12</code> when you&#39;re just trying to write a hash map.</p>
+<p>I just chickened out (good to have fear sometimes I must say), and just used a docker image instead. </p>
+<p>It took me a bit to get the docker environment correctly, but was much better than bricking my system :)</p>
+<h2 id="setting-up-the-build-system">Setting Up the Build System</h2>
+<p>With the dependency nightmare behind us, we can focus on the fun part: actually building things. But here&#39;s the catch: we need to compile our code <em>twice</em>—once for the CPU (host code) and once for the GPU (device code).</p>
+<p>The host code runs on your CPU and handles things like:</p>
+<ul>
+<li>Allocating GPU memory</li>
+<li>Launching kernels</li>
+<li>Managing CUDA streams and contexts</li>
+</ul>
+<p>The device code runs on the GPU and handles things like:</p>
+<ul>
+<li>Actually inserting key-value pairs</li>
+<li>Probing for empty slots</li>
+<li>Comparing keys</li>
+</ul>
+<p>Rust&#39;s solution to this is conditional compilation with <code>#[cfg(target_arch = &quot;nvptx64&quot;)]</code>. Code marked with this attribute only compiles when targeting the GPU. This lets us write code that works in both contexts:</p>
+<pre><code class="language-rust">#[cfg(target_arch = &quot;nvptx64&quot;)]
+// This code only compiles for GPU
+use cuda_std::thread;
+
+#[cfg(not(target_arch = &quot;nvptx64&quot;))]
+// This code only compiles for CPU
+use cust::memory::DeviceBuffer;
+</code></pre>
+<p>I decided to use <code>xtask</code>: a pattern for build automation in Rust projects. Instead of remembering whether you need <code>SOME_OBSCURE_FLAG cargo build --target nvptx64-nvidia-cuda </code> or <code>SOME_OBSCURE_FLAG2 cargo build</code>, you just run:</p>
+<ul>
+<li><code>cargo xtask build</code> - Build host code</li>
+<li><code>cargo xtask build-ptx</code> - Build device code (PTX)</li>
+<li><code>cargo xtask build-all</code> - Build everything</li>
+</ul>
+<p>Our <code>xtask</code> implementation handles all the complexity:</p>
+<ul>
+<li>Finding the <code>rustc_codegen_nvvm</code> backend</li>
+<li>Setting up the right <code>RUSTFLAGS</code> for PTX compilation</li>
+<li>Configuring <code>LD_LIBRARY_PATH</code> for CUDA libraries</li>
+<li>Building with the right target triple (<code>nvptx64-nvidia-cuda</code>)</li>
+</ul>
+<p>The project structure is clean and idiomatic:</p>
+<ul>
+<li><code>kernels/</code> - Shared code that compiles for both CPU and GPU</li>
+<li><code>src/</code> - Host-only code (the public API)</li>
+<li><code>xtask/</code> - Build automation</li>
+</ul>
+<p>This separation lets us write code once and have it work in both contexts, which is exactly what we need for a hash map that needs to be usable from both the CPU (for setup) and the GPU (for operations).</p>
+<h2 id="implementing-the-base-building-blocks">Implementing the Base Building Blocks</h2>
+<p>With the build system in place, we can start implementing the actual data structures. A hash map needs three fundamental pieces:</p>
+<ol>
+<li><strong>Pair</strong>: A key-value pair that can be stored in GPU memory</li>
+<li><strong>Storage</strong>: A buffer that holds all the pairs</li>
+<li><strong>Probing</strong>: A strategy for finding empty slots when collisions occur</li>
+</ol>
+<p>Let&#39;s dive into each one.</p>
+<h3 id="pair-when-alignment-becomes-a-type-system-puzzle">Pair: When Alignment Becomes a Type System Puzzle</h3>
+<p>The <code>Pair</code> type seems simple enough—it&#39;s just a key and a value, right? But GPU memory has alignment requirements, and we need our pairs to be aligned correctly for optimal performance. In C++, this is straightforward:</p>
+<pre><code class="language-cpp">template&lt;typename First, typename Second&gt;
+constexpr size_t get_alignment() {
+    return std::min(16, std::bit_ceil(sizeof(First) + sizeof(Second)));
+}
+
+struct alignas(get_alignment&lt;First, Second&gt;()) pair {
+    First first;
+    Second second;
+};
+</code></pre>
+<p>Rust, however, has a problem: <code>#[repr(align())]</code> requires a <em>literal</em> value, not a computed one. You can&#39;t do <code>#[repr(align(compute_alignment()))]</code>—the compiler will reject it.</p>
+<p>This is where Rust&#39;s type system gets interesting. After receiving help from some lovely folk at the Rust Forum, I figured we can&#39;t use computed values in attributes, but we <em>can</em> use types. The solution? Map alignment values to types, then use those types to enforce alignment.</p>
+<p>Here&#39;s how it works:</p>
+<pre><code class="language-rust">#![feature(generic_const_exprs)]
+#![allow(incomplete_features)]
+
+/// Computes the alignment for a pair type.
+pub const fn alignment&lt;First, Second&gt;() -&gt; usize {
+    let x = (size_of::&lt;First&gt;() + size_of::&lt;Second&gt;()).next_power_of_two();
+    // Const-compatible min: if x &gt; 16, return 16, else return x
+    if x &gt; 16 { 16 } else { x }
+}
+
+/// Trait for mapping alignment values to aligned types
+pub trait AlignedTo&lt;const ALIGN: usize&gt; {
+    type Aligned: Clone + Copy + core::fmt::Debug + cust_core::DeviceCopy;
+}
+
+/// Type alias to get the aligned type for a given alignment value
+pub type Aligned&lt;const ALIGN: usize&gt; = &lt;() as AlignedTo&lt;ALIGN&gt;&gt;::Aligned;
+
+/// Macro to generate `AlignedTo` implementations for specific alignment values
+macro_rules! aligned_to {
+    ( $($align:literal),* $(,)? ) =&gt; {
+        $(
+            const _: () = {
+                #[repr(align($align))]
+                #[derive(Clone, Copy, Debug)]
+                pub struct Aligned;
+                
+                impl AlignedTo&lt;$align&gt; for () {
+                    type Aligned = Aligned;
+                }
+                
+                unsafe impl cust_core::DeviceCopy for Aligned {}
+            };
+        )*
+    }
+}
+
+// Generate implementations for all possible alignment values (1, 2, 4, 8, 16, 32)
+// The alignment function returns min(16, next_power_of_two(size)), so these cover all cases
+aligned_to!(1, 2, 4, 8, 16, 32);
+</code></pre>
+<p><strong>The Magic Explained:</strong></p>
+<ol>
+<li><p><strong><code>generic_const_exprs</code></strong>: This unstable feature lets us use generic type parameters in constant expressions. Without it, we couldn&#39;t compute <code>alignment::&lt;First, Second&gt;()</code> at compile time.</p>
+</li>
+<li><p><strong>The Trait System</strong>: We create a trait <code>AlignedTo&lt;const ALIGN: usize&gt;</code> that maps alignment values to types. For each alignment value (1, 2, 4, 8, 16, 32), we generate a zero-sized struct with that alignment using <code>#[repr(align(N))]</code>.</p>
+</li>
+<li><p><strong>Fully Qualified Syntax (FQS)</strong>: The type alias <code>Aligned&lt;const ALIGN: usize&gt;</code> uses FQS to look up the right aligned type: <code>&lt;() as AlignedTo&lt;ALIGN&gt;&gt;::Aligned</code>. This says &quot;treat <code>()</code> as implementing <code>AlignedTo&lt;ALIGN&gt;</code>, and give me its <code>Aligned</code> type.&quot;</p>
+</li>
+<li><p><strong>The Zero-Sized Marker</strong>: In our <code>Pair</code> struct, we include a zero-sized <code>_marker</code> field with the computed alignment:</p>
+</li>
+</ol>
+<pre><code class="language-rust">pub struct Pair&lt;First, Second&gt;
+where
+    (): AlignedTo&lt;{ alignment::&lt;First, Second&gt;() }&gt;,
+{
+    _marker: Aligned&lt;{ alignment::&lt;First, Second&gt;() }&gt;,
+    pub first: First,
+    pub second: Second,
+}
+</code></pre>
+<p>Even though <code>_marker</code> takes up no space, Rust requires the struct&#39;s alignment to be at least the maximum of all field alignments. So if <code>_marker</code> has alignment 8, the entire <code>Pair</code> must be aligned to at least 8 bytes. It&#39;s a beautiful hack that uses the type system to enforce a runtime property (memory alignment) at compile time.</p>
+<p>This solution came from the Rust user forum (RIP Stack Overflow for niche Rust questions). It&#39;s a perfect example of Rust&#39;s type system being flexible enough to work around language limitations, even if it requires some creative thinking.</p>
+<h3 id="storage-two-paths-to-initialization">Storage: Two Paths to Initialization</h3>
+<p>The <code>Storage</code> type manages a device memory buffer that holds all our key-value pairs. But here&#39;s the thing: when you allocate GPU memory, it&#39;s uninitialized. We need to fill it with sentinel values (special key-value pairs that mean &quot;this slot is empty&quot;).</p>
+<p>For small maps, we can just create a vector on the CPU and copy it to the GPU. But for large maps (think millions of slots), that&#39;s slow. The better approach? Launch a GPU kernel that initializes all slots in parallel.</p>
+<p>Our <code>Storage</code> implementation supports both:</p>
+<pre><code class="language-rust">// Option 1: Host-to-device copy (simple, works for small maps)
+storage.initialize(sentinel, None)?;
+
+// Option 2: Kernel-based initialization (fast for large maps)
+let module = Module::from_ptx(PTX, &amp;[])?;
+storage.initialize(sentinel, Some(&amp;module))?;
+</code></pre>
+<p>The kernel-based approach launches thousands of threads, each initializing a chunk of memory. It&#39;s the difference between copying 1GB of data from CPU to GPU (slow) versus having 10,000 GPU threads each initialize 100KB in parallel (fast).</p>
+<h3 id="probing-linear-and-double-hashing">Probing: Linear and Double Hashing</h3>
+<p>When you insert a key into a hash map, you compute its hash and use that to find a slot. But what if that slot is already taken? You need a <em>probing scheme</em>—a strategy for finding the next available slot.</p>
+<p>We implemented two classic schemes:</p>
+<p><strong>Linear Probing</strong>: The simplest approach. If slot <code>h</code> is taken, try <code>h+1</code>, then <code>h+2</code>, and so on, wrapping around when you reach the end. It&#39;s efficient for low occupancy but can suffer from clustering (long chains of occupied slots).</p>
+<p><strong>Double Hashing</strong>: Uses two hash functions. The first determines the starting position, and the second determines the step size. This reduces clustering and is superior for high-occupancy scenarios. The probe sequence looks like: <code>h1(key)</code>, <code>h1(key) + h2(key)</code>, <code>h1(key) + 2*h2(key)</code>, etc.</p>
+<p>Both schemes implement a <code>ProbingScheme</code> trait that creates a <code>ProbingIterator</code>—an iterator that generates the sequence of slot indices to check. The iterator handles wrap-around automatically, so the calling code just needs to check each slot until it finds an empty one (or determines the key doesn&#39;t exist).</p>
+<p><strong>Parallel Linear Probing with Cooperative Groups</strong>: Here&#39;s where things get interesting. So far, we&#39;ve been talking about scalar operations—one thread, one slot at a time. But GPUs are all about parallelism, and we can do better.</p>
+<p>Imagine you have a cooperative group of <code>cg_size</code> threads working together. Instead of one thread checking one slot, you can have multiple threads check multiple slots in parallel. This is where <code>bucket_size</code> comes in: each thread can handle <code>bucket_size</code> consecutive slots. The total &quot;stride&quot; that a cooperative group covers is <code>stride = bucket_size * cg_size</code>.</p>
+<p><img src="images/cooperative_groups_probing_transparent.png" alt="Blog image"></p>
+<p>Here&#39;s how it works: the hash table is conceptually divided into &quot;groups&quot; of size <code>stride</code>. When we hash a key, we compute which group it belongs to: <code>group_index = hash(key) % (capacity / stride)</code>. The probe sequence starts at the beginning of that group: <code>init_base = group_index * stride</code>.</p>
+<p>Within each group, threads are assigned ranks (0 to <code>cg_size - 1</code>). Each thread starts at its own offset: <code>init = init_base + thread_rank * bucket_size</code>. So if <code>cg_size = 4</code> and <code>bucket_size = 2</code>, thread 0 checks slots 0-1, thread 1 checks slots 2-3, thread 2 checks slots 4-5, and thread 3 checks slots 6-7—all within the same group.</p>
+<p>On each iteration, all threads in the group advance together by <code>stride</code>. This means they jump to the next group and check their assigned slots there. It&#39;s like having a synchronized dance where all threads move in lockstep, but each thread is responsible for its own bucket of slots.</p>
+<h2 id="whats-next">What&#39;s Next?</h2>
+<p>We&#39;ve laid the foundation: a build system that compiles for both CPU and GPU, a <code>Pair</code> type with proper alignment (thanks to some creative type system hacking), a <code>Storage</code> abstraction that can initialize millions of slots efficiently, and probing schemes for handling collisions.</p>
+<p>Hopefully soon, we&#39;ll put it all together to implement the actual <code>StaticMap</code> type—the public API that users will interact with. We&#39;ll cover bulk operations (inserting thousands of keys at once), device-side operations (querying the map from GPU kernels), and the sentinel value system that makes it all work.</p>
+<p>Until then, happy hashing! 🦀</p>
+
+        </div>
+    
+    </div>
+</body>
+</html>
