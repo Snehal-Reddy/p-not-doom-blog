@@ -9,7 +9,6 @@ summary: From Rust type system alignment hacks to GPU vectorisation: laying the 
 
 *From Rust type system alignment hacks to GPU vectorisation: laying the foundation for GPU hashing*
 
-// TODO: Add image
 ![Blog image](images/wheres_waldo.png)
 
 ## The Goal
