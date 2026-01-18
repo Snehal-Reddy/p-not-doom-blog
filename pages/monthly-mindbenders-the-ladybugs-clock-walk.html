@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Mindbenders: The Ladybug's Clock Walk</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Tackling the first in a series of monthly puzzles from MoMath, Peter Winkler, and <span>3Blue1Brown</span>. Starting with a random walk on a clock.">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="Monthly Mindbenders: The Ladybug's Clock Walk">
+    <meta property="og:description" content="Tackling the first in a series of monthly puzzles from MoMath, Peter Winkler, and <span>3Blue1Brown</span>. Starting with a random walk on a clock.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/monthly-mindbenders-the-ladybugs-clock-walk.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Monthly Mindbenders: The Ladybug's Clock Walk">
+    <meta name="twitter:description" content="Tackling the first in a series of monthly puzzles from MoMath, Peter Winkler, and <span>3Blue1Brown</span>. Starting with a random walk on a clock.">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/monthly-mindbenders-the-ladybugs-clock-walk.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>Monthly Mindbenders: The Ladybug's Clock Walk</h1>
+        <div class="post-meta">January 18, 2026 • 5 min read</div>
+        <div class="post-content">
+            <h1 id="monthly-mindbenders-the-ladybugs-clock-walk">Monthly Mindbenders: The Ladybug&#39;s Clock Walk</h1>
+<p><em>Challenge your mind with monthly puzzles from Peter Winkler and <span>3Blue1Brown</span>&#39;s Grant Sanderson.</em></p>
+<p><img src="images/puzzle.jpg" alt="The Ladybug on the Clock"></p>
+<h2 id="the-series">The Series</h2>
+<p>I&#39;ve decided to follow along with the <a href="https://momath.org/mindbenders/">MoMath Monthly Mindbenders</a>, a series of puzzles curated by Peter Winkler and shared by Grant Sanderson (of <span>3Blue1Brown</span> fame). These puzzles are designed to be &quot;mind-bending&quot;—simple to state, but often requiring a clever insight to solve efficiently.</p>
+<p>Each month, I&#39;ll be attempting to solve these and documenting my thought process here.</p>
+<h2 id="the-problem-january-2026">The Problem: January 2026</h2>
+<p>The first puzzle of the year involves a bit of probability and a classic random walk:</p>
+<blockquote>
+<p>A ladybug alights on the <strong>12</strong> of a cuckoo clock. Whenever the clock strikes, she moves randomly to a neighboring number. For example, the first time, she moves to the <strong>1</strong> or the <strong>11</strong> with equal probability.</p>
+</blockquote>
+<blockquote>
+<p>Suppose the ladybug continues this process until she has been to all of the numbers at least once. <strong>What is the probability that the last new number she visits is 6?</strong></p>
+</blockquote>
+<h2 id="my-attempt">My Attempt</h2>
+<h3 id="symmetry-and-intuition">Symmetry and Intuition</h3>
+<p>Let $P(x)$ be the probability that number $x$ is the <em>last</em> new number the ladybug visits.</p>
+<p>First, notice the beautiful symmetry of the clock. The problem doesn&#39;t change if we flip the clock horizontally. The probability of 1 being the last number visited must be the same as 11. This can be proved trivially as well, but I going to rest my argument here, because I am no longer have to turn up a submission to judge anymore xD</p>
+<p>$$P(x) = P(12-x)$$</p>
+<p>So, $P(1) = P(11)$, $P(2) = P(10)$, and so on.</p>
+<h3 id="connecting-other-pieces">Connecting other pieces</h3>
+<p>Now, let&#39;s look at the random walk itself. When the ladybug is at 12, her first step is equally likely to be 11 or 1.
+This implies a powerful property: the probability of any event occurring from 12 is the average of that event occurring from 11 and from 1.</p>
+<p>$$P(6) = \frac{1}{2} P(6 \mid \text{first step to } 11) + \frac{1}{2} P(6 \mid \text{first step to } 1)$$</p>
+<p>Now let&#39;s dig into the first bit $P(6 \mid \text{first step to } 11)$</p>
+<p>This becomes that we start at 11, but the last number we visit is 6. This situation is rotationally equivalent to $P(7)$</p>
+<p>$$P(6 \mid \text{first step to } 11)  = P(7)$$</p>
+<p>Similarly,</p>
+<p>$$P(6 \mid \text{first step to } 1)  = P(5)$$</p>
+<p>$$ =&gt; P(6) = \frac{P(7) + P(5)}{2}$$</p>
+<p>We saw earlier, $P(7) = P(5)$</p>
+<p>$$ =&gt; P(6) = P(5)$$</p>
+<p>If we extend this,</p>
+<p>$$P(1) = P(2) = .... = P(11)$$</p>
+<p>Thus, the probability is simply:</p>
+<p>$$\mathbf{\frac{1}{11}}$$</p>
+<p>It turns out 6 isn&#39;t special at all. Every number, except the start, has an equal shot at being the last one standing.</p>
+<!-- MathJax for this post only -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+        </div>
+    
+    </div>
+</body>
+</html>
