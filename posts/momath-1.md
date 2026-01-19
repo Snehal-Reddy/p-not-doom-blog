@@ -13,9 +13,7 @@ summary: Tackling the first in a series of monthly puzzles from MoMath, Peter Wi
 
 ## The Series
 
-I've decided to follow along with the [MoMath Monthly Mindbenders](https://momath.org/mindbenders/), a series of puzzles curated by Peter Winkler and shared by Grant Sanderson (of <span>3Blue1Brown</span> fame). These puzzles are designed to be "mind-bending"—simple to state, but often requiring a clever insight to solve efficiently.
-
-Each month, I'll be attempting to solve these and documenting my thought process here.
+I've decided to follow along with the [MoMath Monthly Mindbenders](https://momath.org/mindbenders/), a series of puzzles curated by Peter Winkler and shared by Grant Sanderson (of <span>3Blue1Brown</span> fame). Each month, I'll be attempting to solve these and documenting my thought process here.
 
 ## The Problem: January 2026
 
@@ -40,8 +38,7 @@ So, $P(1) = P(11)$, $P(2) = P(10)$, and so on.
 
 ### Connecting other pieces
 
-Now, let's look at the random walk itself. When the ladybug is at 12, her first step is equally likely to be 11 or 1.
-This implies a powerful property: the probability of any event occurring from 12 is the average of that event occurring from 11 and from 1.
+Now, let's look at the random walk itself. When the ladybug is at 12, her first step is equally likely to be 11 or 1. Hence, we can see that:
 
 $$P(6) = \frac{1}{2} P(6 \mid \text{first step to } 11) + \frac{1}{2} P(6 \mid \text{first step to } 1)$$
 
