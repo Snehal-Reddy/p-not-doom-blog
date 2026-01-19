@@ -340,8 +340,7 @@
 <p><em>Challenge your mind with monthly puzzles from Peter Winkler and <span>3Blue1Brown</span>&#39;s Grant Sanderson.</em></p>
 <p><img src="images/puzzle.jpg" alt="The Ladybug on the Clock"></p>
 <h2 id="the-series">The Series</h2>
-<p>I&#39;ve decided to follow along with the <a href="https://momath.org/mindbenders/">MoMath Monthly Mindbenders</a>, a series of puzzles curated by Peter Winkler and shared by Grant Sanderson (of <span>3Blue1Brown</span> fame). These puzzles are designed to be &quot;mind-bending&quot;—simple to state, but often requiring a clever insight to solve efficiently.</p>
-<p>Each month, I&#39;ll be attempting to solve these and documenting my thought process here.</p>
+<p>I&#39;ve decided to follow along with the <a href="https://momath.org/mindbenders/">MoMath Monthly Mindbenders</a>, a series of puzzles curated by Peter Winkler and shared by Grant Sanderson (of <span>3Blue1Brown</span> fame). Each month, I&#39;ll be attempting to solve these and documenting my thought process here.</p>
 <h2 id="the-problem-january-2026">The Problem: January 2026</h2>
 <p>The first puzzle of the year involves a bit of probability and a classic random walk:</p>
 <blockquote>
@@ -357,8 +356,7 @@
 <p>$$P(x) = P(12-x)$$</p>
 <p>So, $P(1) = P(11)$, $P(2) = P(10)$, and so on.</p>
 <h3 id="connecting-other-pieces">Connecting other pieces</h3>
-<p>Now, let&#39;s look at the random walk itself. When the ladybug is at 12, her first step is equally likely to be 11 or 1.
-This implies a powerful property: the probability of any event occurring from 12 is the average of that event occurring from 11 and from 1.</p>
+<p>Now, let&#39;s look at the random walk itself. When the ladybug is at 12, her first step is equally likely to be 11 or 1. Hence, we can see that:</p>
 <p>$$P(6) = \frac{1}{2} P(6 \mid \text{first step to } 11) + \frac{1}{2} P(6 \mid \text{first step to } 1)$$</p>
 <p>Now let&#39;s dig into the first bit $P(6 \mid \text{first step to } 11)$</p>
 <p>This becomes that we start at 11, but the last number we visit is 6. This situation is rotationally equivalent to $P(7)$</p>
