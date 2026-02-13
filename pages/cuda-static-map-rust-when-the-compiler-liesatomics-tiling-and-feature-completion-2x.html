@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuda Static Map Rust: When the compiler lies—atomics, tiling, and feature completion 2/x</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Compiler bugs, scoped atomics, and cooperative tiling. How we reached feature completion.">
+    <meta name="keywords" content="systems programming, C++, Rust, performance optimization, low-level programming, game server, memory management">
+    <meta name="author" content="Snehal Reddy">
+    
+    <!-- Open Graph Meta Tags (for social media) -->
+    <meta property="og:title" content="Cuda Static Map Rust: When the compiler lies—atomics, tiling, and feature completion 2/x">
+    <meta property="og:description" content="Compiler bugs, scoped atomics, and cooperative tiling. How we reached feature completion.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://p-not-doom.com/pages/cuda-static-map-rust-when-the-compiler-liesatomics-tiling-and-feature-completion-2x.html">
+    <meta property="og:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cuda Static Map Rust: When the compiler lies—atomics, tiling, and feature completion 2/x">
+    <meta name="twitter:description" content="Compiler bugs, scoped atomics, and cooperative tiling. How we reached feature completion.">
+    <meta name="twitter:image" content="https://p-not-doom.com/images/snake-battle-royale.png">
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://p-not-doom.com/pages/cuda-static-map-rust-when-the-compiler-liesatomics-tiling-and-feature-completion-2x.html">
+    <meta name="theme-color" content="#5294e2">
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z8P2KN04P6"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-Z8P2KN04P6');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #f5f5f7;
+            background-image: url('images/back.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: #1c1c1e;
+            border-radius: 12px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 0 auto 2rem auto;
+            max-width: 1200px;
+        }
+
+        h1, h2, h3 {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-weight: 600;
+            color: #f5f5f7;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #f5f5f7;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #f5f5f7;
+            border-bottom: 1px solid #38383a;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+        }
+
+        .bio {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #a1a1a6;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .blog-post {
+            background-color: #2c2c2e;
+            border: 1px solid #38383a;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .blog-post:hover {
+            background-color: #3a3a3c;
+            border-color: #48484a;
+            transform: translateY(-2px);
+        }
+
+        .post-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+            font-size: 1.4rem;
+            color: #f5f5f7;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .post-summary {
+            color: #a1a1a6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .post-content {
+            color: #f5f5f7;
+            line-height: 1.8;
+            margin-top: 1.5rem;
+        }
+
+        .post-content h1 {
+            font-size: 2.5rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h2 {
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .post-content h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content p {
+            margin-bottom: 1rem;
+        }
+
+        .post-content ul, .post-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .post-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-content code {
+            background-color: #2c2c2e;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #f5f5f7;
+        }
+
+        .post-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: block;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .post-content pre {
+            background-color: #2c2c2e;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .post-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Table styles for markdown content */
+        .post-content .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background-color: #2c2c2e;
+        }
+
+        .post-content th,
+        .post-content td {
+            border: 1px solid #38383a;
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .post-content thead th {
+            background-color: #303034;
+            color: #f5f5f7;
+            position: sticky;
+            top: 0;
+        }
+
+        .post-content tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .post-content blockquote {
+            border-left: 3px solid #007aff;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #a1a1a6;
+            font-style: italic;
+        }
+
+        .post-meta {
+            font-size: 0.9rem;
+            color: #8e8e93;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: #5ac8fa;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 2rem;
+                max-width: 95%;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
+            h2 {
+                font-size: 1.75rem;
+            }
+
+            h2::after {
+                display: none;
+            }
+
+            .blog-post {
+                padding: 1.5rem;
+            }
+
+            .post-content h1 {
+                font-size: 2rem;
+            }
+
+            .post-title::before {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+                max-width: 98%;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bio {
+                font-size: 1.1rem;
+            }
+
+            .post-content h1 {
+                font-size: 1.8rem;
+            }
+
+            .blog-post {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Blog</a>
+        
+        <h1>Cuda Static Map Rust: When the compiler lies—atomics, tiling, and feature completion 2/x</h1>
+        <div class="post-meta">February 13, 2026 • 5 min read</div>
+        <div class="post-content">
+            <h1 id="cuda-static-map-rust-when-the-compiler-liesatomics-tiling-and-feature-completion-2x">Cuda Static Map Rust: When the compiler lies—atomics, tiling, and feature completion 2/x</h1>
+<p><em>Compiler bugs, scoped atomics, and cooperative tiling. How we reached feature completion.</em></p>
+<p><img src="images/compiler_bug.png" alt="Blog image"></p>
+<h2 id="but-first">But First</h2>
+<p>In the <a href="https://www.p-not-doom.com/pages/cuda-static-map-rust-building-a-gpu-hash-map-from-scratch-1x.html">first post</a>, we laid the foundation: pairs, storage, and probing. This time, we moved from simple &quot;hashing in place&quot; to a full-blown static map. We&#39;re talking bulk insert, bulk find, and bulk contains. We also added cooperative group tiling, so warps can probe together instead of one lonely thread at a time.</p>
+<p>Getting there wasn&#39;t just about writing code. It meant wrestling with scoped atomics (so the GPU actually respects our memory model), figuring out cooperative group tiling (so we aren&#39;t wasting hardware cycles), and—my personal favorite—surviving a barrage of compiler bugs that appeared the second we started passing references and atomics into kernels.</p>
+<p>Behind the scenes, we added proper hashing, storage that respects group size (and prime capacity for double hashing), and a way to count successful inserts. I also split the world into two: host-side setup and a small device-side &quot;ref&quot; passed to every kernel. That ref is 16-byte aligned.</p>
+<p>The first time we passed it into a kernel? <code>IllegalAddress</code>. Garbage pointers. The kernel was reading zeros where it expected a struct.</p>
+<p>I traced it back to an ABI mismatch in the compiler backend. The host packed our struct with 16-byte alignment, but the compiler generated PTX expecting 8-byte alignment. The kernel was reading from the wrong offset, pointing into the void. The fix? We had to tell the compiler to treat 16-byte-aligned structs specially by casting them to 128-bit integer chunks. Without that upstream fix, this blog post would end right here.</p>
+<h2 id="atomics-and-scope">Atomics and Scope</h2>
+<p>GPUs don&#39;t just give you &quot;atomics.&quot; They give you <em>scoped</em> atomics.</p>
+<p>The scope tells the hardware who needs to see the operation. Is it system-wide? Device-wide? Just the thread block? We needed to pick the right scope for every compare-and-swap to make sure the generated PTX matched our intent.</p>
+<p>Then our atomic loads started misbehaving. And not in a &quot;maybe I wrote a bug&quot; way. Silly me, thinking the compiler would emit the right PTX.</p>
+<p>We were using device-scoped atomics, but the macros emitting the load/store instructions were pasting the <em>Rust</em> scope name (&quot;device&quot;) into the instruction string instead of the <em>PTX</em> scope (&quot;gpu&quot;). So a relaxed device load became <code>ld.relaxed.device.u32</code>. PTX doesn&#39;t know what &quot;device&quot; means in that context—it expects &quot;gpu&quot;.</p>
+<p>Get the scope wrong, and the hardware makes no guarantees. In our case, it meant the atomics were effectively broken. We fixed the macros to use the correct PTX nomenclature, and finally, the hardware did what it was told.</p>
+<h2 id="cooperative-group-tiling">Cooperative Group Tiling</h2>
+<p>So far, we had one thread, one key, one probe sequence. Fine for a Tuesday. But GPUs are happier when threads in a warp cooperate.</p>
+<p>So we added <strong>cooperative group tiling</strong>. A small tile of threads (2, 4, 8, or a full warp of 32) shares the work of one logical operation.</p>
+<p><img src="images/thread_voting.png" alt="Thread Voting Diagram"></p>
+<p>For an insert, every thread in the tile probes its slice of the table. They sync up and vote: &quot;Did anyone see this key?&quot; (if so, stop, it&#39;s a duplicate) or &quot;Who found an empty slot?&quot; We pick a winner to do the actual compare-and-swap, then broadcast the result to the whole tile.</p>
+<p>For this to work, the probe sequence has to be <em>tile-aware</em>. The whole tile advances in lockstep. We assign each thread a rank and make the step size equal to the tile width. It&#39;s like a synchronized search party: everyone checks their assigned spot, then everyone takes a big step forward together.</p>
+<p>Of course, two more compiler bugs bit us here.</p>
+<p>First, the warp vote functions (&quot;did any lane satisfy this?&quot;) returned the <em>opposite</em> boolean. The compiler was checking &quot;if predicate is true, return 0, else return 1&quot; and then returning &quot;result != 0&quot;. So when everyone agreed, it returned <code>false</code>. Our &quot;did anyone find it?&quot; checks were inverted. We&#39;d exit early when we found it. We flipped the mapping, and sanity returned.</p>
+<p>Second, the enum for shuffle direction used Rust&#39;s default values (0, 1, 2, 3), but PTX expects specific values (Idx=0, Up=1, Down=2, Xor=3). Our declaration order didn&#39;t match PTX&#39;s expectation. When we asked to &quot;broadcast from lane X,&quot; the compiler emitted &quot;shift down by X.&quot;</p>
+<p>Lesson learned: when wrapping low-level intrinsics, never rely on the order you wrote your enum variants. Explicitly assign values.</p>
+<h2 id="tying-it-together">Tying It Together</h2>
+<p>The host side unifies the setup. We now have a single host API for the canonical setup.</p>
+<ul>
+<li><strong>Bulk insert:</strong> Reset the counter, launch the kernel with the right thread/tile configuration, read the counter back.</li>
+<li><strong>Bulk find/contains:</strong> Pass device buffers, launch, copy results.</li>
+</ul>
+<p>We&#39;ve reached feature parity: bulk operations, proper hashing, and optional cooperative tiling to trade off between thread utilization and keys-in-flight.</p>
+<h2 id="whats-next">What&#39;s Next?</h2>
+<p>We have a working static map. It supports 64-bit keys and values, linear and double hashing, and handles collisions like a champ. The atomics are scoped correctly, the tiling is cooperative, and the compiler bugs are fixed upstream.</p>
+<p>Next up: benchmarks. We need to see how this thing actually performs and where we can squeeze out more speed.</p>
+<p>Until then, happy hashing! 🦀</p>
+
+        </div>
+    
+    </div>
+</body>
+</html>
